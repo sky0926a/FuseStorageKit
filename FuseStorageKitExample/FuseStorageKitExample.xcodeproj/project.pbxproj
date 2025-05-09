@@ -1,0 +1,606 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		BFDFECB42DCE589C00435320 /* FuseStorageKit in Frameworks */ = {isa = PBXBuildFile; productRef = C5A6B0012DFB87DE00F5AF37 /* FuseStorageKit */; };
+		BFDFECB52DCE589C00435320 /* FuseStorageKit in Frameworks */ = {isa = PBXBuildFile; productRef = C5A6B0032DFB882F00F5AF37 /* FuseStorageKit */; };
+		BFDFECB62DCE589C00435320 /* FuseStorageKit in Frameworks */ = {isa = PBXBuildFile; productRef = C5A6B0042DFB883500F5AF37 /* FuseStorageKit */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		BF0DEA9F2DCE0163008D981F /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BF0DEA862DCE0161008D981F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BF0DEA8D2DCE0161008D981F;
+			remoteInfo = FuseStorageKitExample;
+		};
+		BF0DEAA92DCE0163008D981F /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BF0DEA862DCE0161008D981F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BF0DEA8D2DCE0161008D981F;
+			remoteInfo = FuseStorageKitExample;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		BF0DEA8E2DCE0161008D981F /* FuseStorageKitExample.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FuseStorageKitExample.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BF0DEA9E2DCE0163008D981F /* FuseStorageKitExampleTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FuseStorageKitExampleTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		BF0DEAA82DCE0163008D981F /* FuseStorageKitExampleUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FuseStorageKitExampleUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		BF0DEA902DCE0161008D981F /* FuseStorageKitExample */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = FuseStorageKitExample;
+			sourceTree = "<group>";
+		};
+		BF0DEAA12DCE0163008D981F /* FuseStorageKitExampleTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = FuseStorageKitExampleTests;
+			sourceTree = "<group>";
+		};
+		BF0DEAAB2DCE0163008D981F /* FuseStorageKitExampleUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = FuseStorageKitExampleUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		BF0DEA8B2DCE0161008D981F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BFDFECB42DCE589C00435320 /* FuseStorageKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BF0DEA9B2DCE0163008D981F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BFDFECB52DCE589C00435320 /* FuseStorageKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BF0DEAA52DCE0163008D981F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BFDFECB62DCE589C00435320 /* FuseStorageKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		BF0DEA852DCE0161008D981F = {
+			isa = PBXGroup;
+			children = (
+				BF0DEA902DCE0161008D981F /* FuseStorageKitExample */,
+				BF0DEAA12DCE0163008D981F /* FuseStorageKitExampleTests */,
+				BF0DEAAB2DCE0163008D981F /* FuseStorageKitExampleUITests */,
+				BF0DEA8F2DCE0161008D981F /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		BF0DEA8F2DCE0161008D981F /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				BF0DEA8E2DCE0161008D981F /* FuseStorageKitExample.app */,
+				BF0DEA9E2DCE0163008D981F /* FuseStorageKitExampleTests.xctest */,
+				BF0DEAA82DCE0163008D981F /* FuseStorageKitExampleUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		BF0DEA8D2DCE0161008D981F /* FuseStorageKitExample */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BF0DEAB22DCE0163008D981F /* Build configuration list for PBXNativeTarget "FuseStorageKitExample" */;
+			buildPhases = (
+				BF0DEA8A2DCE0161008D981F /* Sources */,
+				BF0DEA8B2DCE0161008D981F /* Frameworks */,
+				BF0DEA8C2DCE0161008D981F /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				BF0DEA902DCE0161008D981F /* FuseStorageKitExample */,
+			);
+			name = FuseStorageKitExample;
+			packageProductDependencies = (
+				C5A6B0012DFB87DE00F5AF37 /* FuseStorageKit */,
+			);
+			productName = FuseStorageKitExample;
+			productReference = BF0DEA8E2DCE0161008D981F /* FuseStorageKitExample.app */;
+			productType = "com.apple.product-type.application";
+		};
+		BF0DEA9D2DCE0163008D981F /* FuseStorageKitExampleTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BF0DEAB52DCE0163008D981F /* Build configuration list for PBXNativeTarget "FuseStorageKitExampleTests" */;
+			buildPhases = (
+				BF0DEA9A2DCE0163008D981F /* Sources */,
+				BF0DEA9B2DCE0163008D981F /* Frameworks */,
+				BF0DEA9C2DCE0163008D981F /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				BF0DEAA02DCE0163008D981F /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				BF0DEAA12DCE0163008D981F /* FuseStorageKitExampleTests */,
+			);
+			name = FuseStorageKitExampleTests;
+			packageProductDependencies = (
+				C5A6B0032DFB882F00F5AF37 /* FuseStorageKit */,
+			);
+			productName = FuseStorageKitExampleTests;
+			productReference = BF0DEA9E2DCE0163008D981F /* FuseStorageKitExampleTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		BF0DEAA72DCE0163008D981F /* FuseStorageKitExampleUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BF0DEAB82DCE0163008D981F /* Build configuration list for PBXNativeTarget "FuseStorageKitExampleUITests" */;
+			buildPhases = (
+				BF0DEAA42DCE0163008D981F /* Sources */,
+				BF0DEAA52DCE0163008D981F /* Frameworks */,
+				BF0DEAA62DCE0163008D981F /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				BF0DEAAA2DCE0163008D981F /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				BF0DEAAB2DCE0163008D981F /* FuseStorageKitExampleUITests */,
+			);
+			name = FuseStorageKitExampleUITests;
+			packageProductDependencies = (
+				C5A6B0042DFB883500F5AF37 /* FuseStorageKit */,
+			);
+			productName = FuseStorageKitExampleUITests;
+			productReference = BF0DEAA82DCE0163008D981F /* FuseStorageKitExampleUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		BF0DEA862DCE0161008D981F /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1620;
+				LastUpgradeCheck = 1620;
+				TargetAttributes = {
+					BF0DEA8D2DCE0161008D981F = {
+						CreatedOnToolsVersion = 16.2;
+					};
+					BF0DEA9D2DCE0163008D981F = {
+						CreatedOnToolsVersion = 16.2;
+						TestTargetID = BF0DEA8D2DCE0161008D981F;
+					};
+					BF0DEAA72DCE0163008D981F = {
+						CreatedOnToolsVersion = 16.2;
+						TestTargetID = BF0DEA8D2DCE0161008D981F;
+					};
+				};
+			};
+			buildConfigurationList = BF0DEA892DCE0161008D981F /* Build configuration list for PBXProject "FuseStorageKitExample" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = BF0DEA852DCE0161008D981F;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				C5A6B0002DFB87DE00F5AF37 /* XCLocalSwiftPackageReference ".." */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = BF0DEA8F2DCE0161008D981F /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				BF0DEA8D2DCE0161008D981F /* FuseStorageKitExample */,
+				BF0DEA9D2DCE0163008D981F /* FuseStorageKitExampleTests */,
+				BF0DEAA72DCE0163008D981F /* FuseStorageKitExampleUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		BF0DEA8C2DCE0161008D981F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BF0DEA9C2DCE0163008D981F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BF0DEAA62DCE0163008D981F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		BF0DEA8A2DCE0161008D981F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BF0DEA9A2DCE0163008D981F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BF0DEAA42DCE0163008D981F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		BF0DEAA02DCE0163008D981F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = BF0DEA8D2DCE0161008D981F /* FuseStorageKitExample */;
+			targetProxy = BF0DEA9F2DCE0163008D981F /* PBXContainerItemProxy */;
+		};
+		BF0DEAAA2DCE0163008D981F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = BF0DEA8D2DCE0161008D981F /* FuseStorageKitExample */;
+			targetProxy = BF0DEAA92DCE0163008D981F /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		BF0DEAB02DCE0163008D981F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		BF0DEAB12DCE0163008D981F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		BF0DEAB32DCE0163008D981F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"FuseStorageKitExample/Preview Content\"";
+				DEVELOPMENT_TEAM = ZB8FR9L33J;
+				DONT_GENERATE_INFOPLIST_FILE = NO;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_PREPROCESS = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fusestoragekit.FuseStorageKitExample;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		BF0DEAB42DCE0163008D981F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"FuseStorageKitExample/Preview Content\"";
+				DEVELOPMENT_TEAM = ZB8FR9L33J;
+				DONT_GENERATE_INFOPLIST_FILE = NO;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_PREPROCESS = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fusestoragekit.FuseStorageKitExample;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		BF0DEAB62DCE0163008D981F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ZB8FR9L33J;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fusestoragekit.FuseStorageKitExampleTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/FuseStorageKitExample.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/FuseStorageKitExample";
+			};
+			name = Debug;
+		};
+		BF0DEAB72DCE0163008D981F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ZB8FR9L33J;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fusestoragekit.FuseStorageKitExampleTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/FuseStorageKitExample.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/FuseStorageKitExample";
+			};
+			name = Release;
+		};
+		BF0DEAB92DCE0163008D981F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ZB8FR9L33J;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fusestoragekit.FuseStorageKitExampleUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = FuseStorageKitExample;
+			};
+			name = Debug;
+		};
+		BF0DEABA2DCE0163008D981F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ZB8FR9L33J;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fusestoragekit.FuseStorageKitExampleUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = FuseStorageKitExample;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		BF0DEA892DCE0161008D981F /* Build configuration list for PBXProject "FuseStorageKitExample" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BF0DEAB02DCE0163008D981F /* Debug */,
+				BF0DEAB12DCE0163008D981F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BF0DEAB22DCE0163008D981F /* Build configuration list for PBXNativeTarget "FuseStorageKitExample" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BF0DEAB32DCE0163008D981F /* Debug */,
+				BF0DEAB42DCE0163008D981F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BF0DEAB52DCE0163008D981F /* Build configuration list for PBXNativeTarget "FuseStorageKitExampleTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BF0DEAB62DCE0163008D981F /* Debug */,
+				BF0DEAB72DCE0163008D981F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BF0DEAB82DCE0163008D981F /* Build configuration list for PBXNativeTarget "FuseStorageKitExampleUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BF0DEAB92DCE0163008D981F /* Debug */,
+				BF0DEABA2DCE0163008D981F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		C5A6B0002DFB87DE00F5AF37 /* XCLocalSwiftPackageReference ".." */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ..;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		C5A6B0012DFB87DE00F5AF37 /* FuseStorageKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = FuseStorageKit;
+		};
+		C5A6B0032DFB882F00F5AF37 /* FuseStorageKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = FuseStorageKit;
+		};
+		C5A6B0042DFB883500F5AF37 /* FuseStorageKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = FuseStorageKit;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = BF0DEA862DCE0161008D981F /* Project object */;
+}

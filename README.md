@@ -123,55 +123,55 @@ try kit.database.createTable(Note.tableDefinition())
 
 #### Database Encryption
 
-FuseStorageKit 支援使用 SQLCipher 對資料庫進行加密。啟用加密功能需要以下步驟：
+FuseStorageKit supports database encryption using SQLCipher. To enable encryption, follow these steps:
 
 ```swift
-// 使用預設加密配置初始化加密選項
-// 1. 標準安全級別 (推薦)
+// Initialize encryption options with default presets
+// 1. Standard security level (recommended)
 let standardEncryption = EncryptionOptions.standard(passphrase: "YourSecurePassphrase")
 
-// 2. 高安全級別 (更安全但性能較低)
+// 2. High security level (more secure but lower performance)
 let highSecurityEncryption = EncryptionOptions.high(passphrase: "YourSecurePassphrase")
 
-// 3. 性能優先 (安全性較低但性能較好)
+// 3. Performance-first (less secure but better performance)
 let performanceEncryption = EncryptionOptions.performance(passphrase: "YourSecurePassphrase")
 
-// 或手動設定自訂加密選項
+// Or manually configure custom encryption options
 let customEncryption = EncryptionOptions("YourSecurePassphrase")
-    .pageSize(4096)           // 設定頁面大小
-    .kdfIter(64000)           // 設定 KDF 迭代次數
-    .memorySecurity(true)     // 啟用記憶體安全
-    .defaultPageSize(4096)    // 設定預設頁面大小
-    .defaultKdfIter(64000)    // 設定預設 KDF 迭代次數
+    .pageSize(4096)           // Set page size
+    .kdfIter(64000)           // Set KDF iteration count
+    .memorySecurity(true)     // Enable memory security
+    .defaultPageSize(4096)    // Set default page size
+    .defaultKdfIter(64000)    // Set default KDF iteration count
 
-// 使用加密選項初始化資料庫管理器
+// Initialize the database manager with the chosen encryption options
 let encryptedDbManager = try FuseDatabaseManager(
-    path: "encrypted.sqlite", 
+    path: "encrypted.sqlite",
     encryptions: standardEncryption
 )
 
-// 然後使用此加密資料庫管理器建立 FuseStorageKit 實例
+// Then build a FuseStorageKit instance using this encrypted database manager
 let secureKit = try FuseStorageKitBuilder()
     .with(database: encryptedDbManager)
     .build()
 ```
 
-SQLCipher 加密選項說明：
-- `pageSize`: 設定資料庫頁面大小 (page size)，影響性能與加密強度，常用值: 4096 (與系統頁面大小對齊)
-- `kdfIter`: 金鑰推導函數 (Key Derivation Function) 的迭代次數，越高越安全但速度越慢
-- `memorySecurity`: 啟用記憶體安全 (memory security)，防止敏感資料留在記憶體中
-- `defaultPageSize`: 設定新資料庫的預設頁面大小
-- `defaultKdfIter`: 設定新資料庫的預設 KDF 迭代次數
+SQLCipher Encryption Options:
+- `pageSize`: Sets the database page size; affects performance and encryption strength. Common value: 4096 (aligned with system page size).
+- `kdfIter`: Number of iterations for the Key Derivation Function (KDF); higher values increase security but reduce performance.
+- `memorySecurity`: Enables in-memory security to prevent sensitive data from lingering in memory.
+- `defaultPageSize`: Sets the default page size for new databases.
+- `defaultKdfIter`: Sets the default KDF iteration count for new databases.
 
-預設配置說明：
-- `standard`: 均衡的安全性和性能（頁面大小 4096，KDF 迭代 64,000，啟用記憶體安全）
-- `high`: 高安全性配置（頁面大小 4096，KDF 迭代 200,000，啟用記憶體安全）
-- `performance`: 性能優先配置（頁面大小 4096，KDF 迭代 10,000，不啟用記憶體安全）
+Default Presets:
+- `standard`: Balanced security and performance (page size 4096, KDF iterations 64,000, memory security enabled).
+- `high`: High-security configuration (page size 4096, KDF iterations 200,000, memory security enabled).
+- `performance`: Performance-first configuration (page size 4096, KDF iterations 10,000, memory security disabled).
 
-注意事項：
-- 加密和未加密的資料庫互不相容，請確保正確管理加密金鑰
-- 如果使用加密資料庫後忘記金鑰，資料將無法恢復
-- 加密可能會對性能產生輕微影響，但提供更高的資料安全性
+Notes:
+- Encrypted and unencrypted databases are incompatible; manage your encryption keys carefully.
+- If you lose the encryption key, the database cannot be restored.
+- Encryption may introduce a slight performance overhead but provides enhanced data protection.
 
 #### Record Operations
 
@@ -184,6 +184,14 @@ let newNote = Note(id: UUID().uuidString,
 
 // Add a record to the database
 try kit.database.add(newNote)
+
+// Batch insert multiple records
+let batchNotes = [
+    Note(id: UUID().uuidString, title: "Note 1", content: "Content 1", createdAt: Date()),
+    Note(id: UUID().uuidString, title: "Note 2", content: "Content 2", createdAt: Date()),
+    Note(id: UUID().uuidString, title: "Note 3", content: "Content 3", createdAt: Date())
+]
+try kit.database.add(batchNotes)
 
 // Fetch all records of a type
 let allNotes: [Note] = try kit.database.fetch(of: Note.self)
@@ -205,6 +213,10 @@ let sortedNotes: [Note] = try kit.database.fetch(
 
 // Delete a record
 try kit.database.delete(note)
+
+// Batch delete multiple records
+let notesToDelete = [note1, note2, note3]
+try kit.database.delete(notesToDelete)
 ```
 
 #### Advanced Queries
@@ -237,6 +249,34 @@ let updateQuery = FuseQuery(
 )
 try kit.database.write(updateQuery)
 ```
+
+#### Batch Operations
+
+FuseStorageKit provides optimized methods for working with multiple records at once:
+
+```swift
+// Batch insert multiple records in a single database transaction
+let batchRecords = [
+    Note(id: UUID().uuidString, title: "Meeting Notes", content: "Discuss roadmap", createdAt: Date()),
+    Note(id: UUID().uuidString, title: "Project Ideas", content: "New feature concepts", createdAt: Date()),
+    Note(id: UUID().uuidString, title: "Shopping List", content: "Items to buy", createdAt: Date())
+]
+
+// Insert all records in a single optimized transaction
+try kit.database.add(batchRecords)
+
+// Batch delete multiple records in a single database transaction
+let recordsToDelete = [note1, note2, note3]
+try kit.database.delete(recordsToDelete)
+```
+
+Benefits of batch operations:
+- Improved performance through reduced database transactions
+- Enhanced atomicity with all operations succeeding or failing together
+- Reduced disk I/O overhead
+- Optimized for large datasets
+
+Under the hood, batch operations use special SQL syntax for maximum efficiency rather than executing individual operations in a loop.
 
 ### 2. FuseFileManager
 

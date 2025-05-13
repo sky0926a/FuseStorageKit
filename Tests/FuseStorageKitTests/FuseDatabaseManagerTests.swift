@@ -222,6 +222,162 @@ class FuseDatabaseManagerTests: XCTestCase {
         XCTAssertEqual(fetchedDelete.count, 0)
     }
 
+    func testDatabaseEncryption() throws {
+        // 設定測試用的加密資料庫路徑
+        let fileManager = FileManager.default
+        let docsDir = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let encryptedDBPath = "encrypted_test.sqlite"
+        let encryptedDBURL = docsDir.appendingPathComponent(encryptedDBPath)
+        let passphrase = "TestEncryptionKey123"
+        
+        // 清理之前可能存在的測試檔案
+        if fileManager.fileExists(atPath: encryptedDBURL.path) {
+            try fileManager.removeItem(at: encryptedDBURL)
+        }
+        
+        // 1. 建立加密資料庫並寫入資料
+        do {
+            // 使用標準安全級別的加密選項
+            let encryptionOptions = EncryptionOptions.standard(passphrase: passphrase)
+            
+            let encryptedDBManager = try FuseDatabaseManager(
+                path: encryptedDBPath, 
+                encryptions: encryptionOptions
+            )
+            
+            // 建立測試表格
+            let tableDefinition = FuseTableDefinition(
+                name: "encrypted_test_table",
+                columns: [
+                    FuseColumnDefinition(name: "id", type: .integer, isPrimaryKey: true, isNotNull: true),
+                    FuseColumnDefinition(name: "secret_data", type: .text, isNotNull: true)
+                ],
+                options: [.ifNotExists]
+            )
+            try encryptedDBManager.createTable(tableDefinition)
+            
+            // 寫入機密資料
+            let insertQuery = FuseQuery(
+                table: "encrypted_test_table",
+                action: .insert(values: ["id": 1, "secret_data": "This is sensitive information"])
+            )
+            try encryptedDBManager.write(insertQuery)
+            
+            // 使用 read 方法讀取資料
+            let selectQuery = FuseQuery(
+                table: "encrypted_test_table",
+                action: .select(fields: ["id", "secret_data"], filters: [], sort: nil)
+            )
+            
+            // 使用 MockSecretData 讀取結果
+            struct MockSecretData: FuseDatabaseRecord {
+                static var databaseTableName: String = "encrypted_test_table"
+                static var _fuseidField: String = "id"
+                
+                var id: Int64
+                var secret_data: String
+                
+                static func fromDatabase(row: GRDB.Row) throws -> MockSecretData {
+                    return MockSecretData(
+                        id: row["id"],
+                        secret_data: row["secret_data"]
+                    )
+                }
+            }
+            
+            let results: [MockSecretData] = try encryptedDBManager.read(selectQuery)
+            
+            XCTAssertEqual(results.count, 1)
+            XCTAssertEqual(results.first?.secret_data, "This is sensitive information")
+        }
+        
+        // 測試不同安全級別
+        do {
+            // 使用高安全級別加密選項
+            let highSecurityEncryption = EncryptionOptions.high(passphrase: passphrase)
+            XCTAssertNoThrow(try FuseDatabaseManager(
+                path: "high_security_test.sqlite",
+                encryptions: highSecurityEncryption
+            ))
+            
+            // 使用性能優先的加密選項
+            let performanceEncryption = EncryptionOptions.performance(passphrase: passphrase)
+            XCTAssertNoThrow(try FuseDatabaseManager(
+                path: "performance_test.sqlite",
+                encryptions: performanceEncryption
+            ))
+            
+            // 測試自訂加密選項
+            let customEncryption = EncryptionOptions(passphrase)
+                .pageSize(4096)
+                .kdfIter(50_000)
+                .memorySecurity(true)
+                .defaultPageSize(4096)
+                .defaultKdfIter(50_000)
+            
+            XCTAssertNoThrow(try FuseDatabaseManager(
+                path: "custom_test.sqlite",
+                encryptions: customEncryption
+            ))
+        }
+        
+        // 2. 嘗試使用錯誤的金鑰開啟資料庫 (這應該會失敗)
+        XCTAssertThrowsError(try FuseDatabaseManager(
+            path: encryptedDBPath, 
+            encryptions: EncryptionOptions.standard(passphrase: "WrongKey")
+        )) { error in
+            // 注意：在實際場景中，SQLCipher 會拋出不同的錯誤，這裡我們只是確保它失敗了
+            print("Expected error when opening with wrong key: \(error)")
+        }
+        
+        // 3. 使用正確金鑰開啟資料庫並驗證資料
+        do {
+            let reopenedDBManager = try FuseDatabaseManager(
+                path: encryptedDBPath, 
+                encryptions: EncryptionOptions.standard(passphrase: passphrase)
+            )
+            
+            // 再次定義用於讀取的結構
+            struct MockSecretData: FuseDatabaseRecord {
+                static var databaseTableName: String = "encrypted_test_table"
+                static var _fuseidField: String = "id"
+                
+                var id: Int64
+                var secret_data: String
+                
+                static func fromDatabase(row: GRDB.Row) throws -> MockSecretData {
+                    return MockSecretData(
+                        id: row["id"],
+                        secret_data: row["secret_data"]
+                    )
+                }
+                
+                func toDatabaseValues() -> [String : (any GRDB.DatabaseValueConvertible)?] {
+                    return ["id": id, "secret_data": secret_data]
+                }
+            }
+            
+            // 使用 FuseDatabaseManageable 提供的 fetch 方法
+            let results: [MockSecretData] = try reopenedDBManager.fetch(of: MockSecretData.self)
+            
+            XCTAssertEqual(results.count, 1)
+            XCTAssertEqual(results.first?.secret_data, "This is sensitive information")
+        }
+        
+        // 清理測試資料庫檔案
+        if fileManager.fileExists(atPath: encryptedDBURL.path) {
+            try fileManager.removeItem(at: encryptedDBURL)
+        }
+        
+        // 清理其他測試檔案
+        ["high_security_test.sqlite", "performance_test.sqlite", "custom_test.sqlite"].forEach { path in
+            let url = docsDir.appendingPathComponent(path)
+            if fileManager.fileExists(atPath: url.path) {
+                try? fileManager.removeItem(at: url)
+            }
+        }
+    }
+
     func testCreateTableWithMultipleColumnsAndTypes() throws {
         let newTableName = "multi_column_table"
         let tableDefinition = FuseTableDefinition(

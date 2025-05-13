@@ -1,5 +1,4 @@
 import Foundation
-import GRDB
 
 /// Protocol defining synchronization operations (local ⇄ remote, can be No-Op or cloud-based)
 public protocol FuseSyncManageable {

@@ -1,5 +1,4 @@
 import Foundation
-import GRDB
 
 /// Builder class for creating and configuring FuseStorageKit instances
 public class FuseStorageKitBuilder {
@@ -47,7 +46,7 @@ public class FuseStorageKitBuilder {
   /// - Returns: A fully configured FuseStorageKit instance
   /// - Throws: Errors during component initialization
   public func build() throws -> FuseStorageKit {
-    let db   = try database ?? FuseDatabaseManager()
+    let db = try database ?? FuseDatabaseManager()
     let pref = preferences ?? FusePreferencesManager()
     let file = file ?? FuseFileManager()
     let sync = sync

@@ -121,6 +121,58 @@ let tableExists = try kit.database.tableExists("notes")
 try kit.database.createTable(Note.tableDefinition())
 ```
 
+#### Database Encryption
+
+FuseStorageKit 支援使用 SQLCipher 對資料庫進行加密。啟用加密功能需要以下步驟：
+
+```swift
+// 使用預設加密配置初始化加密選項
+// 1. 標準安全級別 (推薦)
+let standardEncryption = EncryptionOptions.standard(passphrase: "YourSecurePassphrase")
+
+// 2. 高安全級別 (更安全但性能較低)
+let highSecurityEncryption = EncryptionOptions.high(passphrase: "YourSecurePassphrase")
+
+// 3. 性能優先 (安全性較低但性能較好)
+let performanceEncryption = EncryptionOptions.performance(passphrase: "YourSecurePassphrase")
+
+// 或手動設定自訂加密選項
+let customEncryption = EncryptionOptions("YourSecurePassphrase")
+    .pageSize(4096)           // 設定頁面大小
+    .kdfIter(64000)           // 設定 KDF 迭代次數
+    .memorySecurity(true)     // 啟用記憶體安全
+    .defaultPageSize(4096)    // 設定預設頁面大小
+    .defaultKdfIter(64000)    // 設定預設 KDF 迭代次數
+
+// 使用加密選項初始化資料庫管理器
+let encryptedDbManager = try FuseDatabaseManager(
+    path: "encrypted.sqlite", 
+    encryptions: standardEncryption
+)
+
+// 然後使用此加密資料庫管理器建立 FuseStorageKit 實例
+let secureKit = try FuseStorageKitBuilder()
+    .with(database: encryptedDbManager)
+    .build()
+```
+
+SQLCipher 加密選項說明：
+- `pageSize`: 設定資料庫頁面大小 (page size)，影響性能與加密強度，常用值: 4096 (與系統頁面大小對齊)
+- `kdfIter`: 金鑰推導函數 (Key Derivation Function) 的迭代次數，越高越安全但速度越慢
+- `memorySecurity`: 啟用記憶體安全 (memory security)，防止敏感資料留在記憶體中
+- `defaultPageSize`: 設定新資料庫的預設頁面大小
+- `defaultKdfIter`: 設定新資料庫的預設 KDF 迭代次數
+
+預設配置說明：
+- `standard`: 均衡的安全性和性能（頁面大小 4096，KDF 迭代 64,000，啟用記憶體安全）
+- `high`: 高安全性配置（頁面大小 4096，KDF 迭代 200,000，啟用記憶體安全）
+- `performance`: 性能優先配置（頁面大小 4096，KDF 迭代 10,000，不啟用記憶體安全）
+
+注意事項：
+- 加密和未加密的資料庫互不相容，請確保正確管理加密金鑰
+- 如果使用加密資料庫後忘記金鑰，資料將無法恢復
+- 加密可能會對性能產生輕微影響，但提供更高的資料安全性
+
 #### Record Operations
 
 ```swift

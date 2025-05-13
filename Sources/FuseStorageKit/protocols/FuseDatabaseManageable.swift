@@ -15,10 +15,15 @@ public protocol FuseDatabaseManageable {
     /// - Throws: Database operation errors if the table cannot be created
     func createTable(_ tableDefinition: FuseTableDefinition) throws
     
-    /// Inserts a new record into the database
+    /// Inserts a new record into the database.
     /// - Parameter record: The record to insert
     /// - Throws: Database operation errors if the insertion fails
     func add<T: FuseDatabaseRecord>(_ record: T) throws
+
+    /// Inserts multiple records into the database in a single transaction.
+    /// - Parameter records: An array of records to insert.
+    /// - Throws: Database operation errors if the insertion fails.
+    func add<T: FuseDatabaseRecord>(_ records: [T]) throws
     
     /// Fetches records from the database with optional filtering, sorting, and pagination
     /// - Parameters:
@@ -41,6 +46,11 @@ public protocol FuseDatabaseManageable {
     /// - Parameter record: The record to delete
     /// - Throws: Database operation errors if the deletion fails
     func delete<T: FuseDatabaseRecord>(_ record: T) throws
+    
+    /// Deletes multiple records from the database in a single transaction.
+    /// - Parameter records: An array of records to delete.
+    /// - Throws: Database operation errors if the deletion fails.
+    func delete<T: FuseDatabaseRecord>(_ records: [T]) throws
     
     /// Executes a SELECT query and returns the results as an array of records
     /// - Parameter query: The query to execute

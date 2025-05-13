@@ -7,11 +7,11 @@ struct MockRecord: FuseDatabaseRecord, Equatable {
     static var databaseTableName: String = "mock_records"
     static var _fuseidField: String = "id"
 
-    var id: Int64?
+    var id: Int64
     var name: String
     var value: Int
 
-    init(id: Int64? = nil, name: String, value: Int) {
+    init(id: Int64, name: String, value: Int) {
         self.id = id
         self.name = name
         self.value = value
@@ -107,7 +107,7 @@ class FuseDatabaseManagerTests: XCTestCase {
     }
 
     func testAddRecord() throws {
-        let record = MockRecord(name: "Test Record 1", value: 100)
+        let record = MockRecord(id: 1, name: "Test Record 1", value: 100)
         try dbManager.add(record)
 
         // Fetch to verify
@@ -120,8 +120,8 @@ class FuseDatabaseManagerTests: XCTestCase {
     }
 
     func testFetchRecords() throws {
-        let record1 = MockRecord(name: "Fetch Record 1", value: 10)
-        let record2 = MockRecord(name: "Fetch Record 2", value: 20)
+        let record1 = MockRecord(id: 1, name: "Fetch Record 1", value: 10)
+        let record2 = MockRecord(id: 2, name: "Fetch Record 2", value: 20)
         try dbManager.add(record1)
         try dbManager.add(record2)
 
@@ -152,7 +152,7 @@ class FuseDatabaseManagerTests: XCTestCase {
     }
 
     func testDeleteRecord() throws {
-        var recordToDelete = MockRecord(name: "Delete Me", value: 555)
+        var recordToDelete = MockRecord(id: 1, name: "Delete Me", value: 555)
         try dbManager.add(recordToDelete)
 
         // Fetch to get the ID assigned by the database
@@ -160,7 +160,7 @@ class FuseDatabaseManagerTests: XCTestCase {
             FuseQueryFilter.equals(field: "name", value: "Delete Me")
         ])
         XCTAssertEqual(recordsBeforeDelete.count, 1)
-        recordToDelete.id = recordsBeforeDelete.first?.id // Assign the database-generated ID
+        recordToDelete.id = recordsBeforeDelete.first?.id ?? 1 // Assign the database-generated ID
 
         XCTAssertNotNil(recordToDelete.id, "Record ID should be set after fetching.")
 
@@ -173,8 +173,8 @@ class FuseDatabaseManagerTests: XCTestCase {
     }
     
     func testReadQuery() throws {
-        let record1 = MockRecord(name: "Read Query 1", value: 101)
-        let record2 = MockRecord(name: "Read Query 2", value: 102)
+        let record1 = MockRecord(id: 1, name: "Read Query 1", value: 101)
+        let record2 = MockRecord(id: 2, name: "Read Query 2", value: 102)
         try dbManager.add(record1)
         try dbManager.add(record2)
 
@@ -199,10 +199,11 @@ class FuseDatabaseManagerTests: XCTestCase {
         XCTAssertEqual(fetchedInsert.first?.value, 201)
 
         // Test UPDATE via write (assuming the record "Write Insert" now has an ID)
-        guard let recordToUpdate = fetchedInsert.first, let recordId = recordToUpdate.id else {
+        guard let recordToUpdate = fetchedInsert.first else {
             XCTFail("Failed to fetch record for update test")
             return
         }
+        let recordId = recordToUpdate.id
         let updateQuery = FuseQuery(
             table: MockRecord.databaseTableName,
             action: .update(values: ["value": 202], filters: [FuseQueryFilter.equals(field: "id", value: recordId)])
@@ -524,5 +525,126 @@ class FuseDatabaseManagerTests: XCTestCase {
         }
         let existsAfterSecond = try dbManager.tableExists(newTableName)
         XCTAssertTrue(existsAfterSecond, "Table '\(newTableName)' should still exist after attempted second creation.")
+    }
+
+    // Test adding a single record
+    func testAddSingleRecord() throws {
+        let record = MockRecord(id: 1, name: "Test1", value: 100)
+        try dbManager.add(record)
+
+        let fetchedRecords: [MockRecord] = try dbManager.fetch(of: MockRecord.self)
+        XCTAssertEqual(fetchedRecords.count, 1)
+        XCTAssertEqual(fetchedRecords.first?.id, 1)
+        XCTAssertEqual(fetchedRecords.first?.name, "Test1")
+        XCTAssertEqual(fetchedRecords.first?.value, 100)
+    }
+    
+    // Test batch adding records
+    func testBatchAddRecords() throws {
+        let records = [
+            MockRecord(id: 4, name: "Test4", value: 400),
+            MockRecord(id: 5, name: "Test5", value: 500),
+            MockRecord(id: 6, name: "Test6", value: 600)
+        ]
+        try dbManager.add(records)
+        
+        let fetchedRecords: [MockRecord] = try dbManager.fetch(of: MockRecord.self)
+        XCTAssertEqual(fetchedRecords.count, 3) // Only the newly added records
+        XCTAssertEqual(fetchedRecords[0].id, 4)
+        XCTAssertEqual(fetchedRecords[1].id, 5)
+        XCTAssertEqual(fetchedRecords[2].id, 6)
+    }
+    
+    // Test batch adding records with existing data
+    func testBatchAddRecordsWithExistingData() throws {
+        // Add some initial data
+        try dbManager.add(MockRecord(id: 1, name: "Test1", value: 100))
+        
+        let recordsToAdd = [
+            MockRecord(id: 7, name: "Test7", value: 700),
+            MockRecord(id: 8, name: "Test8", value: 800)
+        ]
+        try dbManager.add(recordsToAdd)
+        
+        let fetchedRecords: [MockRecord] = try dbManager.fetch(of: MockRecord.self)
+        XCTAssertEqual(fetchedRecords.count, 3) // Initial record + 2 new records
+        
+        let sortedRecords = fetchedRecords.sorted { $0.id < $1.id }
+        XCTAssertEqual(sortedRecords[0].id, 1)
+        XCTAssertEqual(sortedRecords[1].id, 7)
+        XCTAssertEqual(sortedRecords[2].id, 8)
+    }
+    
+    // Test batch deleting records
+    func testBatchDeleteRecords() throws {
+        // Add some records first
+        let records = [
+            MockRecord(id: 10, name: "BatchDelete1", value: 1000),
+            MockRecord(id: 11, name: "BatchDelete2", value: 1100),
+            MockRecord(id: 12, name: "BatchDelete3", value: 1200)
+        ]
+        try dbManager.add(records)
+        
+        // Verify records were added
+        let fetchedBeforeDelete: [MockRecord] = try dbManager.fetch(of: MockRecord.self, filters: [
+            FuseQueryFilter.greaterThan(field: "id", value: 9)
+        ])
+        XCTAssertEqual(fetchedBeforeDelete.count, 3, "Should have 3 records before batch delete")
+        
+        // Delete records in batch
+        try dbManager.delete(records)
+        
+        // Verify records were deleted
+        let fetchedAfterDelete: [MockRecord] = try dbManager.fetch(of: MockRecord.self, filters: [
+            FuseQueryFilter.greaterThan(field: "id", value: 9)
+        ])
+        XCTAssertEqual(fetchedAfterDelete.count, 0, "All records should be deleted after batch delete")
+    }
+    
+    // Test batch deleting with empty array
+    func testBatchDeleteEmptyArray() throws {
+        // Add a record to verify it's not affected
+        try dbManager.add(MockRecord(id: 20, name: "NotDeleted", value: 2000))
+        
+        // Call batch delete with empty array
+        let emptyArray: [MockRecord] = []
+        XCTAssertNoThrow(try dbManager.delete(emptyArray), "Batch delete with empty array should not throw")
+        
+        // Verify the existing record is not affected
+        let fetchedRecords: [MockRecord] = try dbManager.fetch(of: MockRecord.self, filters: [
+            FuseQueryFilter.equals(field: "id", value: 20)
+        ])
+        XCTAssertEqual(fetchedRecords.count, 1, "Existing record should not be affected by empty batch delete")
+    }
+    
+    // Test batch deleting a subset of records
+    func testBatchDeleteSubset() throws {
+        // Add several records
+        try dbManager.add([
+            MockRecord(id: 30, name: "Keep", value: 3000),
+            MockRecord(id: 31, name: "Delete1", value: 3100),
+            MockRecord(id: 32, name: "Delete2", value: 3200),
+            MockRecord(id: 33, name: "Keep", value: 3300)
+        ])
+        
+        // Delete only a subset
+        let recordsToDelete = [
+            MockRecord(id: 31, name: "Delete1", value: 3100),
+            MockRecord(id: 32, name: "Delete2", value: 3200)
+        ]
+        try dbManager.delete(recordsToDelete)
+        
+        // Verify only the subset was deleted
+        let remainingRecords: [MockRecord] = try dbManager.fetch(of: MockRecord.self, filters: [
+            FuseQueryFilter.greaterThan(field: "id", value: 29)
+        ])
+        XCTAssertEqual(remainingRecords.count, 2, "Should have 2 remaining records")
+        
+        // Verify the correct records remain
+        let remainingIds = remainingRecords.map { $0.id }
+        XCTAssertTrue(remainingIds.contains(30), "Record with ID 30 should remain")
+        XCTAssertTrue(remainingIds.contains(33), "Record with ID 33 should remain")
+        XCTAssertFalse(remainingIds.contains(31), "Record with ID 31 should be deleted")
+        XCTAssertFalse(remainingIds.contains(32), "Record with ID 32 should be deleted")
     }
 } 

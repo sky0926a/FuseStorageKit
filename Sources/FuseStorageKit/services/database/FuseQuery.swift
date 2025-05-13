@@ -181,10 +181,14 @@ public enum FuseQueryAction {
     case select(fields: [String], filters: [FuseQueryFilter], sort: FuseQuerySort?, limit: Int? = nil, offset: Int? = nil)
     /// Insert new records
     case insert(values: [String: FuseDatabaseValueConvertible?])
+    /// Insert multiple records at once
+    case insertMany(values: [[String: FuseDatabaseValueConvertible?]])
     /// Update existing records
     case update(values: [String: FuseDatabaseValueConvertible?], filters: [FuseQueryFilter])
     /// Delete records
     case delete(filters: [FuseQueryFilter])
+    /// Delete multiple records by their IDs
+    case deleteMany(field: String, ids: [FuseDatabaseValueConvertible])
     /// Insert or update records (UPSERT)
     case upsert(values: [String: FuseDatabaseValueConvertible?], conflict: [String], update: [String]?)
 }
@@ -207,11 +211,11 @@ public struct FuseQuery {
 
     /// Builds the SQL query and its parameters
     /// - Returns: A tuple containing the SQL query and its parameter values
-    internal func build() -> (sql: String, args: [DatabaseValueConvertible]) {
+    internal func build() -> (sql: String, args: [FuseDatabaseValueConvertible]) {
         switch action {
         case .select(let fields, let filters, let sort, let limit, let offset):
             var sql = "SELECT \(fields.joined(separator: ", ")) FROM \(table)"
-            var args: [DatabaseValueConvertible] = []
+            var args: [FuseDatabaseValueConvertible] = []
             if !filters.isEmpty {
                 let parts = filters.map { f in f.build() }
                 sql += " WHERE " + parts.map { $0.clause }.joined(separator: " AND ")
@@ -233,14 +237,37 @@ public struct FuseQuery {
             let cols = sortedKeys.joined(separator: ", ")
             let placeholders = Array(repeating: "?", count: values.count).joined(separator: ", ")
             let sql = "INSERT INTO \(table) (\(cols)) VALUES (\(placeholders))"
-            let args = sortedKeys.map { (values[$0]!) ?? NSNull() }
+            let args = sortedKeys.map { (values[$0] as? FuseDatabaseValueConvertible) ?? NSNull() }
+            return (sql, args)
+
+        case .insertMany(let manyValues):
+            guard !manyValues.isEmpty else {
+                return ("", [])
+            }
+            
+            // 從所有記錄中找出所有可能的欄位
+            let allKeys = Set(manyValues.flatMap { $0.keys }).sorted()
+            let cols = allKeys.joined(separator: ", ")
+            
+            // 為每筆記錄創建值佔位符 (?, ?, ...)
+            let valuePlaceholders = Array(repeating: "?", count: allKeys.count).joined(separator: ", ")
+            let rowPlaceholders = Array(repeating: "(\(valuePlaceholders))", count: manyValues.count).joined(separator: ", ")
+            
+            let sql = "INSERT INTO \(table) (\(cols)) VALUES \(rowPlaceholders)"
+            
+            // 組裝所有參數，確保每筆記錄的欄位順序與 allKeys 一致
+            var args: [FuseDatabaseValueConvertible] = []
+            for values in manyValues {
+                args.append(contentsOf: allKeys.map { values[$0] as? FuseDatabaseValueConvertible ?? NSNull() })
+            }
+            
             return (sql, args)
 
         case .update(let values, let filters):
             let sortedKeys = values.keys.sorted()
             let setClause = sortedKeys.map { "\($0) = ?" }.joined(separator: ", ")
             var sql = "UPDATE \(table) SET \(setClause)"
-            var args = sortedKeys.map { (values[$0]!) ?? NSNull() }
+            var args = sortedKeys.map { (values[$0] as? FuseDatabaseValueConvertible) ?? NSNull() }
             if !filters.isEmpty {
                 let parts = filters.map { f in f.build() }
                 sql += " WHERE " + parts.map { $0.clause }.joined(separator: " AND ")
@@ -250,12 +277,18 @@ public struct FuseQuery {
 
         case .delete(let filters):
             var sql = "DELETE FROM \(table)"
-            var args: [DatabaseValueConvertible] = []
+            var args: [FuseDatabaseValueConvertible] = []
             if !filters.isEmpty {
                 let parts = filters.map { f in f.build() }
                 sql += " WHERE " + parts.map { $0.clause }.joined(separator: " AND ")
                 args = parts.flatMap { $0.values }
             }
+            return (sql, args)
+
+        case .deleteMany(let field, let ids):
+            let placeholders = Array(repeating: "?", count: ids.count).joined(separator: ", ")
+            let sql = "DELETE FROM \(table) WHERE \(field) IN (\(placeholders))"
+            let args = ids
             return (sql, args)
 
         case .upsert(let values, let conflictCols, let updateCols):
@@ -276,7 +309,7 @@ public struct FuseQuery {
                 .joined(separator: ", ")
                 
             let sql = "INSERT INTO \(table) (\(cols)) VALUES (\(placeholders)) ON CONFLICT(\(conflictList)) DO UPDATE SET \(updateList)"
-            let args = sortedValueKeys.map { (values[$0]!) ?? NSNull() }
+            let args = sortedValueKeys.map { (values[$0] as? FuseDatabaseValueConvertible) ?? NSNull() }
             return (sql, args)
         }
     }

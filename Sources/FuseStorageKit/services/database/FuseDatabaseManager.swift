@@ -87,6 +87,25 @@ public final class FuseDatabaseManager: FuseDatabaseManageable {
         try write(query)
     }
 
+    /// Inserts multiple records into the database in a single batch operation to optimize performance.
+    /// - Parameter records: An array of records to be inserted.
+    /// - Throws: A database error if the batch insertion fails.
+    public func add<T: FuseDatabaseRecord>(_ records: [T]) throws {
+        guard !records.isEmpty else { return }
+        
+        // Gather database values for all records
+        let valuesArray = records.map { $0.toDatabaseValues() }
+        
+        // Construct a batch insert query
+        let query = FuseQuery(
+            table: T.databaseTableName,
+            action: .insertMany(values: valuesArray)
+        )
+        
+        // Execute the query
+        try write(query)
+    }
+
     /// Fetches records from the database with optional filtering, sorting, and pagination.
     /// - Parameters:
     ///   - type: The type of records to fetch
@@ -128,6 +147,25 @@ public final class FuseDatabaseManager: FuseDatabaseManageable {
             ])
         )
         
+        try write(query)
+    }
+
+    /// Deletes multiple records from the database in a single transaction.
+    /// - Parameter records: An array of records to delete.
+    /// - Throws: Database operation errors if the deletion fails.
+    public func delete<T: FuseDatabaseRecord>(_ records: [T]) throws {
+        guard !records.isEmpty else { return }
+        
+        // Extract _fuseid values from all records
+        let ids = records.map { $0._fuseid }
+        
+        // Create a batch delete query
+        let query = FuseQuery(
+            table: T.databaseTableName,
+            action: .deleteMany(field: T._fuseidField, ids: ids)
+        )
+        
+        // Execute the query
         try write(query)
     }
 

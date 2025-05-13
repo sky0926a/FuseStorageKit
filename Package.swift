@@ -14,19 +14,24 @@ let package = Package(
     ),
   ],
   dependencies: [
-    .package(url: "https://github.com/groue/GRDB.swift.git", from: "6.0.0"),
     .package(url: "https://github.com/firebase/firebase-ios-sdk.git", from: "10.0.0"),
   ],
   targets: [
+    .binaryTarget(
+      name: "GRDB",
+      url: "https://github.com/duckduckgo/GRDB.swift/releases/download/3.0.0/GRDB.xcframework.zip",
+      checksum: "41f01022f6a35986393e063e1ef386fd896646ed032f7d0419c4b02fa3afe61d"
+    ),
     .target(
       name: "FuseStorageKit",
       dependencies: [
-        .product(name: "GRDB", package: "GRDB.swift"),
+        "GRDB",
         .product(name: "FirebaseStorage", package: "firebase-ios-sdk"),
       ],
       path: "Sources/FuseStorageKit",
       swiftSettings: [
-        .define("USE_GRDB")
+        .define("USE_GRDB"),
+        .define("SQLITE_HAS_CODEC"),
       ]
     ),
     .testTarget(

@@ -1,5 +1,4 @@
 import Foundation
-import GRDB
 
 /// Protocol defining the core database operations for FuseStorageKit.
 /// This protocol provides a type-safe interface for database operations including

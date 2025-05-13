@@ -7,13 +7,22 @@ public final class FuseDatabaseManager: FuseDatabaseManageable {
     private let dbQueue: DatabaseQueue
 
     /// Initializes a new database manager with a specified SQLite file path.
-    /// - Parameter path: The name of the SQLite database file. Defaults to "fuse.sqlite"
+    /// - Parameters:
+    ///   - path: The name of the SQLite database file. Defaults to "fuse.sqlite"
+    ///   - encryptions: Optional encryption options for database encryption. If provided, SQLCipher will be used to encrypt the database.
     /// - Throws: Database initialization errors if the file cannot be created or accessed
-    public init(path: String = "fuse.sqlite") throws {
+    public init(path: String = "fuse.sqlite", encryptions: EncryptionOptions? = nil) throws {
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         let url = docs.appendingPathComponent(path)
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-        self.dbQueue = try DatabaseQueue(path: url.path)
+
+        var configuration = Configuration()
+        if let encryptions = encryptions {
+            configuration.prepareDatabase { db in
+                try encryptions.apply(to: db)
+            }
+        }
+        self.dbQueue = try DatabaseQueue(path: url.path, configuration: configuration)
     }
 
     /// Initializes a database manager with an existing database queue.
@@ -179,11 +188,3 @@ public final class FuseDatabaseManager: FuseDatabaseManageable {
         }
     }
 }
-
-/// Database-related error types
-public enum FuseDatabaseError: Error {
-  /// Indicates that the record type is not suitable for database operations
-  case invalidRecordType
-  /// Indicates that the table already exists
-  case tableAlreadyExists(String)
-} 

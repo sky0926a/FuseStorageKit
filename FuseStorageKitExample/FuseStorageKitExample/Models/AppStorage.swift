@@ -5,22 +5,41 @@ import UIKit
 class AppStorage {
     static let shared = AppStorage()
     
-    private let storageKit: FuseStorageKit
+    private let storage: FuseStorage
     
     private init() {
         do {
-            storageKit = try FuseStorageKitBuilder()
-                .with(database: FuseDatabaseManager(path: "fuse.sqlite"))
-                .with(file: FuseFileManager.withBaseFolder("NoteAttachments"))
+            let buildStart = CFAbsoluteTimeGetCurrent()
+            storage = try FuseStorageBuilder()
+                .with(database: .sqlite("fuse.sqlite", encryptions: EncryptionOptions("fuse")))
+                .with(file: .document("NoteAttachments"))
+                .with(preferences: .keychain("com.fusestoragekit.user"))
                 .build()
+            let buildDuration = CFAbsoluteTimeGetCurrent() - buildStart
+                    print("🛠️ storage.build() took \(String(format: "%.3f", buildDuration)) seconds")
+            let tableStart = CFAbsoluteTimeGetCurrent()
             try database.createTable(Note.tableDefinition())
+            let tableDuration = CFAbsoluteTimeGetCurrent() - tableStart
+                    print("📋 createTable() took \(String(format: "%.3f", tableDuration)) seconds")
         } catch {
             fatalError("無法初始化儲存系統: \(error)")
         }
     }
     
     var database: FuseDatabaseManageable {
-        return storageKit.database
+        return storage.db(.sqlite("fuse.sqlite"))!
+    }
+    
+    var file: FuseFileManageable {
+        return storage.file(.document("NoteAttachments"))!
+    }
+    
+    var preferences: FusePreferencesManageable {
+        return storage.pref(.userDefaults())!
+    }
+    
+    var keychain: FusePreferencesManageable {
+        return storage.pref(.keychain("com.fusestoragekit.user"))!
     }
     
     // MARK: - 筆記相關操作
@@ -31,7 +50,7 @@ class AppStorage {
         // 如果有圖片附件，先儲存圖片
         if let image = image {
             let imagePath = "attachments/\(note.id)/image.jpg"
-            _ = try storageKit.file.save(image: image, relativePath: imagePath)
+            _ = try file.save(image: image, fileName: imagePath)
             
             // 更新筆記的附件信息
             noteToSave.hasAttachment = true
@@ -78,14 +97,14 @@ class AppStorage {
         
         // 如果有附件，也刪除附件
         if note.hasAttachment, let path = note.attachmentPath {
-            try storageKit.file.delete(relativePath: path)
+            try file.delete(relativePath: path)
         }
     }
     
     func getAttachmentImage(for note: Note) -> UIImage? {
         guard note.hasAttachment, let path = note.attachmentPath else { return nil }
         
-        let url = storageKit.file.url(for: path)
+        let url = file.url(for: path)
         
         guard let data = try? Data(contentsOf: url) else { return nil }
         return UIImage(data: data)
@@ -94,89 +113,56 @@ class AppStorage {
     // MARK: - 使用者偏好設定操作
     
     func saveThemePreference(isDarkMode: Bool) {
-        storageKit.preferences.set(isDarkMode, forKey: "isDarkMode")
+        try? preferences.set(isDarkMode, forKey: "isDarkMode")
     }
     
     func getThemePreference() -> Bool {
-        storageKit.preferences.get(forKey: "isDarkMode") ?? false
+        preferences.get(forKey: "isDarkMode") ?? false
     }
     
-    // MARK: - 文件打包分享功能
+    // MARK: - 用戶認證相關 Keychain 操作
     
-    /// 將整個 Documents 目錄打包成 ZIP 文件
-    /// - Returns: ZIP 文件的 URL
-    /// - Throws: 打包過程中的錯誤
-    func createNotesZipArchive() throws -> URL {
-        let fileManager = FileManager.default
-        
-        // 先清理所有可能存在的舊臨時 ZIP 文件
-        try cleanupOldZipFiles()
-        
-        // 獲取應用的 Documents 目錄
-        let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        
-        // 遞歸創建 FileWrapper 的輔助函數
-        func createFileWrapper(for directory: URL) throws -> FileWrapper {
-            var contentWrappers = [String: FileWrapper]()
-            
-            // 獲取目錄中的所有內容
-            let contents = try fileManager.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil, options: [])
-            
-            for url in contents {
-                let fileName = url.lastPathComponent
-                
-                // 跳過某些系統文件和臨時文件
-                if fileName.hasPrefix(".") || fileName == "Inbox" {
-                    continue
-                }
-                
-                if url.hasDirectoryPath {
-                    // 遞歸處理子目錄
-                    let subWrapper = try createFileWrapper(for: url)
-                    contentWrappers[fileName] = subWrapper
-                } else {
-                    // 處理文件
-                    let fileData = try Data(contentsOf: url)
-                    let fileWrapper = FileWrapper(regularFileWithContents: fileData)
-                    fileWrapper.preferredFilename = fileName
-                    contentWrappers[fileName] = fileWrapper
-                }
-            }
-            
-            return FileWrapper(directoryWithFileWrappers: contentWrappers)
-        }
-        
-        // 創建包含整個 Documents 內容的 FileWrapper
-        let docWrapper = try createFileWrapper(for: documentsDirectory)
-        
-        // 創建 ZIP 文件路徑 (使用 UUID 確保唯一性)
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd-HH-mm-ss"
-        let dateString = dateFormatter.string(from: Date())
-        let uniqueID = UUID().uuidString.prefix(8)
-        let zipFileName = "Documents_\(dateString)_\(uniqueID).zip"
-        let zipFilePath = fileManager.temporaryDirectory.appendingPathComponent(zipFileName)
-        
-        // 將 FileWrapper 寫入 ZIP 文件
-        try docWrapper.write(to: zipFilePath, options: .atomic, originalContentsURL: nil)
-        
-        return zipFilePath
+    /// 儲存用戶登入令牌到 Keychain
+    /// - Parameter token: 登入令牌
+    func saveUserToken(_ token: String) {
+        try? keychain.set(token, forKey: "userToken")
     }
     
-    /// 清理舊的臨時 ZIP 文件
-    private func cleanupOldZipFiles() throws {
-        let fileManager = FileManager.default
-        let tempDir = fileManager.temporaryDirectory
-        
-        // 獲取臨時目錄中的所有內容
-        let tempContents = try fileManager.contentsOfDirectory(at: tempDir, includingPropertiesForKeys: nil, options: [])
-        
-        // 刪除所有以 "Documents_" 開頭且以 ".zip" 結尾的文件
-        for fileURL in tempContents {
-            let fileName = fileURL.lastPathComponent
-            if fileName.hasPrefix("Documents_") && fileName.hasSuffix(".zip") {
-                try? fileManager.removeItem(at: fileURL)
-            }
-        }
+    /// 從 Keychain 取得用戶登入令牌
+    /// - Returns: 登入令牌，如果沒有則返回 nil
+    func getUserToken() -> String? {
+        return keychain.get(forKey: "userToken")
+    }
+    
+    /// 儲存用戶密碼到 Keychain
+    /// - Parameters:
+    ///   - password: 用戶密碼
+    ///   - username: 用戶名稱
+    func saveUserPassword(_ password: String, for username: String) {
+        try? keychain.set(password, forKey: "password_\(username)")
+    }
+    
+    /// 從 Keychain 取得用戶密碼
+    /// - Parameter username: 用戶名稱
+    /// - Returns: 用戶密碼，如果沒有則返回 nil
+    func getUserPassword(for username: String) -> String? {
+        return keychain.get(forKey: "password_\(username)")
+    }
+    
+    /// 清除所有用戶認證資訊
+    func clearUserAuth() {
+        keychain.removeValue(forKey: "userToken")
+    }
+    
+    /// 清除特定用戶的密碼
+    /// - Parameter username: 用戶名稱
+    func clearUserPassword(for username: String) {
+        keychain.removeValue(forKey: "password_\(username)")
+    }
+    
+    /// 檢查是否已登入
+    /// - Returns: 是否已登入
+    func isUserLoggedIn() -> Bool {
+        return keychain.containsValue(forKey: "userToken")
     }
 } 

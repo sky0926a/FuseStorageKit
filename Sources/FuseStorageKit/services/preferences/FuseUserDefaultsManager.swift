@@ -5,7 +5,7 @@ import Foundation
 /// This class optimizes storage by using UserDefaults' native APIs for common
 /// value types (String, Int, Bool, Double, Float, Data, URL, Date) and
 /// falling back to JSON encoding/decoding for custom Codable types and collections.
-public final class FusePreferencesManager: FusePreferencesManageable {
+public final class FuseUserDefaultsManager: FusePreferencesManageable {
 
     /// The underlying UserDefaults instance.
     private let defaults: UserDefaults
@@ -19,18 +19,12 @@ public final class FusePreferencesManager: FusePreferencesManageable {
     /// - Parameters:
     ///   - suiteName: An optional suite name for namespaced UserDefaults.
     ///                If nil, `UserDefaults.standard` is used.
-    ///   - dateEncodingStrategy: Strategy for encoding Date values into JSON. Default is ISO8601.
-    ///   - dateDecodingStrategy: Strategy for decoding Date values from JSON. Default is ISO8601.
-    public init(
-        suiteName: String? = nil,
-        dateEncodingStrategy: JSONEncoder.DateEncodingStrategy = .iso8601,
-        dateDecodingStrategy: JSONDecoder.DateDecodingStrategy = .iso8601
-    ) {
-        self.defaults = suiteName.flatMap { UserDefaults(suiteName: $0) } ?? .standard
+    public init(suiteName: String? = nil) {
+        self.defaults = UserDefaults(suiteName: suiteName) ?? .standard
         self.encoder = JSONEncoder()
-        self.encoder.dateEncodingStrategy = dateEncodingStrategy
+        self.encoder.dateEncodingStrategy = .iso8601
         self.decoder = JSONDecoder()
-        self.decoder.dateDecodingStrategy = dateDecodingStrategy
+        self.decoder.dateDecodingStrategy = .iso8601
     }
 
     /// Stores a Codable value for the specified key.
@@ -38,10 +32,11 @@ public final class FusePreferencesManager: FusePreferencesManageable {
     /// - Parameters:
     ///   - value: The Codable value to store.
     ///   - key: The key under which to store the value.
+    /// - Throws: Encoding or storage errors.
     ///
     /// This method uses native UserDefaults APIs for primitive types and Date.
     /// Custom types and collections are serialized to Data via JSONEncoder.
-    public func set<Value>(_ value: Value, forKey key: String) where Value: Codable {
+    public func set<Value>(_ value: Value, forKey key: String) throws where Value: Codable {
         switch value {
         case let v as String:
             defaults.set(v, forKey: key)
@@ -61,12 +56,8 @@ public final class FusePreferencesManager: FusePreferencesManageable {
             defaults.set(v, forKey: key)
         default:
             // Fallback: encode custom Codable types to JSON data
-            do {
-                let data = try encoder.encode(value)
-                defaults.set(data, forKey: key)
-            } catch {
-                assertionFailure("Failed to JSON-encode value for key '\(key)': \(error)")
-            }
+            let data = try encoder.encode(value)
+            defaults.set(data, forKey: key)
         }
     }
 
@@ -78,9 +69,10 @@ public final class FusePreferencesManager: FusePreferencesManageable {
     /// This method first attempts native UserDefaults APIs for primitive types and Date.
     /// If the value type is not one of those, it falls back to JSON decoding.
     public func get<Value>(forKey key: String) -> Value? where Value: Codable {
-        // Native String retrieval
+        // Native String retrieval with type safety
         if Value.self == String.self {
-            return defaults.string(forKey: key) as? Value
+            guard let v = defaults.object(forKey: key) as? String else { return nil }
+            return v as? Value
         }
         // Native Int retrieval (distinguish absence vs zero)
         if Value.self == Int.self {

@@ -184,6 +184,18 @@ public final class FuseDatabaseManager: FuseDatabaseManageable {
         }
     }
 
+    /// Executes a read operation
+    /// - Parameter sql: The SQL to execute
+    /// - Parameter arguments: The arguments to pass to the SQL
+    /// - Returns: Array of records matching the query
+    /// - Throws: Database operation errors if the query fails
+    public func read<T: FuseDatabaseRecord>(_ sql: String, arguments: some Sequence<(any FuseDatabaseValueConvertible)?>) throws -> [T] {
+        return try dbQueue.read { db in
+            let request = try T.fetchAll(db, sql: sql, arguments: StatementArguments(arguments))
+            return request
+        }
+    }
+
     /// Executes a write operation (INSERT/UPDATE/DELETE/UPSERT).
     /// - Parameter query: The query to execute
     /// - Throws: Database operation errors if the write operation fails
@@ -194,8 +206,17 @@ public final class FuseDatabaseManager: FuseDatabaseManageable {
         }
     }
 
-    // MARK: - Helpers
+    /// Executes a write operation
+    /// - Parameter sql: The SQL to execute
+    /// - Parameter arguments: The arguments to pass to the SQL
+    /// - Throws: Database operation errors if the write operation fails
+    public func write(_ sql: String, arguments: some Sequence<(any FuseDatabaseValueConvertible)?>) throws {
+        try dbQueue.write { db in
+            try db.execute(sql: sql, arguments: StatementArguments(arguments))
+        }
+    }
 
+    // MARK: - Helpers
     private func convertToDBColumnType(_ sqlType: String) -> Database.ColumnType? {
         let up = sqlType.uppercased()
         if up.contains("TEXT")     { return .text }

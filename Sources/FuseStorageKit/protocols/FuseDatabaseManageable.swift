@@ -1,9 +1,11 @@
 import Foundation
 
-/// Protocol defining the core database operations for FuseStorageKit.
+/// Protocol defining the core database operations for FuseStorageKit
+/// 
 /// This protocol provides a type-safe interface for database operations including
-/// table management, record operations, and query execution.
-public protocol FuseDatabaseManageable {
+/// table management, record operations, and query execution. It serves as the
+/// contract for all database implementations within the FuseStorageKit framework.
+public protocol FuseDatabaseManageable: FuseManageable {
     /// Checks if a table exists in the database
     /// - Parameter tableName: The name of the table to check
     /// - Returns: `true` if the table exists, `false` otherwise

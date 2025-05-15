@@ -1,6 +1,11 @@
 import Foundation
 import GRDB
 
+/// Configuration options for database encryption using SQLCipher
+/// 
+/// This structure provides a fluent interface for configuring database encryption
+/// settings including passphrase, page size, key derivation parameters, and memory
+/// security options. It supports both custom configuration and preset security levels.
 public struct EncryptionOptions {
     // MARK: - Properties
     internal var passphrase: String

@@ -1,7 +1,7 @@
 import Foundation
 
 /// Protocol defining synchronization operations (local ⇄ remote, can be No-Op or cloud-based)
-public protocol FuseSyncManageable {
+public protocol FuseSyncManageable: FuseManageable {
   /// Start the synchronization process
   func startSync()
   

@@ -3,7 +3,7 @@ import FirebaseStorage
 
 #if canImport(FirebaseStorage)
 /// Implementation of FuseSyncManageable that uses Firebase Storage for remote synchronization
-public final class FirebaseSyncManager: FuseSyncManageable {
+public final class FuseFirebaseSyncManager: FuseSyncManageable {
   private let storage = Storage.storage()
   
   /// Initialize a new Firebase sync manager

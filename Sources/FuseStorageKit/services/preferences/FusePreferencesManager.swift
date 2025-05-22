@@ -19,18 +19,14 @@ public final class FusePreferencesManager: FusePreferencesManageable {
     /// - Parameters:
     ///   - suiteName: An optional suite name for namespaced UserDefaults.
     ///                If nil, `UserDefaults.standard` is used.
-    ///   - dateEncodingStrategy: Strategy for encoding Date values into JSON. Default is ISO8601.
-    ///   - dateDecodingStrategy: Strategy for decoding Date values from JSON. Default is ISO8601.
     public init(
-        suiteName: String? = nil,
-        dateEncodingStrategy: JSONEncoder.DateEncodingStrategy = .iso8601,
-        dateDecodingStrategy: JSONDecoder.DateDecodingStrategy = .iso8601
+        suiteName: String? = nil
     ) {
-        self.defaults = suiteName.flatMap { UserDefaults(suiteName: $0) } ?? .standard
+        self.defaults = UserDefaults(suiteName: suiteName) ?? .standard
         self.encoder = JSONEncoder()
-        self.encoder.dateEncodingStrategy = dateEncodingStrategy
+        self.encoder.dateEncodingStrategy = .iso8601
         self.decoder = JSONDecoder()
-        self.decoder.dateDecodingStrategy = dateDecodingStrategy
+        self.decoder.dateDecodingStrategy = .iso8601
     }
 
     /// Stores a Codable value for the specified key.

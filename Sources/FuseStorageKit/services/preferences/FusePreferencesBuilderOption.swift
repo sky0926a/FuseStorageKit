@@ -48,15 +48,35 @@ public struct FusePreferencesBuilderOption: FuseStorageBuilderOption {
     }
 }
 
-public enum FusePreferencesOptionQuery: FuseStorageOptionQuery {
-    case userDefaults(_ suiteName: String? = nil)
-    case keychain(_ service: String? = nil)
+enum FusePreferencesOptionQueryType {
+    case userDefaults(_ suiteName: String?)
+    case keychain(_ service: String?)
     case custom(_ name: String)
+}
+
+public struct FusePreferencesOptionQuery: FuseStorageOptionQuery {
+    private let optionType: FusePreferencesOptionQueryType
+
+    init(optionType: FusePreferencesOptionQueryType) {
+        self.optionType = optionType
+    }
+
+    public static func userDefaults(_ suiteName: String? = nil) -> Self {
+        return .init(optionType: .userDefaults(suiteName))
+    }
+
+    public static func keychain(_ service: String? = nil) -> Self { 
+        return .init(optionType: .keychain(service))
+    }
+
+    public static func custom(_ name: String) -> Self {
+        return .init(optionType: .custom(name))
+    }
 
     public var name: String {
-        switch self {
+        switch self.optionType {
         case .userDefaults(let suiteName):
-            return "pref_userDefaults_\(suiteName ?? Bundle.main.bundleIdentifier ?? FuseConstants.defaultName)"
+            return "pref_userDefaults_\(suiteName ?? Bundle.main.bundleIdentifier ?? FuseConstants.packageName)"
         case .keychain(let service):
             let wrappedService = service ?? ""
             return "pref_keychain_\(wrappedService)"

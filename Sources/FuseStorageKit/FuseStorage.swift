@@ -2,10 +2,10 @@ import Foundation
 
 /// Main facade for the FuseStorageKit providing unified access to storage services
 public final class FuseStorage {
-    public let database: [String: FuseDatabaseManageable]
-    public let preferences: [String: FusePreferencesManageable]
-    public let file: [String: FuseFileManageable]
-    public let sync: [String: FuseSyncManageable]
+    public let databaseManagers: [String: FuseDatabaseManageable]
+    public let preferencesManagers: [String: FusePreferencesManageable]
+    public let fileManagers: [String: FuseFileManageable]
+    public let syncManagers: [String: FuseSyncManageable]
 
     /// Initialize with all dependencies
     /// - Parameters:
@@ -13,29 +13,29 @@ public final class FuseStorage {
     ///   - preferencesManager: The preferences manager for user settings
     ///   - fileManager: The file manager for file operations
     ///   - syncManager: The sync manager for data synchronization
-    init(databaseManager: [String: FuseDatabaseManageable],
-         preferencesManager: [String: FusePreferencesManageable],
-         fileManager: [String: FuseFileManageable],
-         syncManager: [String: FuseSyncManageable]) {
-        self.database = databaseManager
-        self.preferences = preferencesManager
-        self.file = fileManager
-        self.sync = syncManager
+    init(databaseManagers: [String: FuseDatabaseManageable],
+         preferencesManagers: [String: FusePreferencesManageable],
+         fileManagers: [String: FuseFileManageable],
+         syncManagers: [String: FuseSyncManageable]) {
+        self.databaseManagers = databaseManagers
+        self.preferencesManagers = preferencesManagers
+        self.fileManagers = fileManagers
+        self.syncManagers = syncManagers
     }
 
     func db(_ query: FuseDatabaseOptionQuery) -> FuseDatabaseManageable? {
-        return database[query.name]
+        return databaseManagers[query.name]
     }
 
     func pref(_ query: FusePreferencesOptionQuery) -> FusePreferencesManageable? {
-        return preferences[query.name]
+        return preferencesManagers[query.name]
     }
     
     func file(_ query: FuseFileOptionQuery) -> FuseFileManageable? {
-        return file[query.name]
+        return fileManagers[query.name]
     }
 
     func sync(_ query: FuseSyncOptionQuery) -> FuseSyncManageable? {
-        return sync[query.name]
+        return syncManagers[query.name]
     }
 }

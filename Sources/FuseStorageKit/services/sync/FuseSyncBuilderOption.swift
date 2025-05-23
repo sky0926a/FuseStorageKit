@@ -47,25 +47,47 @@ public struct FuseSyncBuilderOption: FuseStorageBuilderOption {
         switch self.optionType {
         #if canImport(FirebaseStorage)
         case .firebase:
-            return FuseSyncOptionQuery.firebase
+            return FuseSyncOptionQuery.firebase()
         #endif
         case .noSync:
-            return FuseSyncOptionQuery.noSync
+            return FuseSyncOptionQuery.noSync()
         case .custom(let name, _):
             return FuseSyncOptionQuery.custom(name)
         }
     }
 }
 
-public enum FuseSyncOptionQuery: FuseStorageOptionQuery {
+enum FuseSyncOptionQueryType {
     #if canImport(FirebaseStorage)
     case firebase
     #endif
     case noSync
     case custom(_ name: String)
+}
+
+public struct FuseSyncOptionQuery: FuseStorageOptionQuery {
+    private let optionType: FuseSyncOptionQueryType
+
+    init(optionType: FuseSyncOptionQueryType) {
+        self.optionType = optionType
+    }
+
+    #if canImport(FirebaseStorage)
+    public static func firebase() -> Self {
+        return .init(optionType: .firebase)
+    }
+    #endif  
+    
+    public static func noSync() -> Self {
+        return .init(optionType: .noSync)
+    }
+
+    public static func custom(_ name: String) -> Self {
+        return .init(optionType: .custom(name))
+    }
 
     public var name: String {
-        switch self {
+        switch self.optionType {
         #if canImport(FirebaseStorage)
         case .firebase:
             return "sync_firebase"

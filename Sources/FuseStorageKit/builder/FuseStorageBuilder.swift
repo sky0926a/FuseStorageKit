@@ -46,43 +46,50 @@ public class FuseStorageBuilder {
     /// - Returns: A fully configured FuseStorageKit instance
     /// - Throws: Errors during component initialization
     public func build() throws -> FuseStorage {
-        database = database.isEmpty ? [.sqlite()] : database
-        var databaseManager: [String: FuseDatabaseManageable] = [:]
-        for db in database {
-            if let manager = try db.build() as? FuseDatabaseManageable {
-                databaseManager[db.query.name] = manager
-            }
-        }
-        
-        preferences = preferences.isEmpty ? [.userDefaults()] : preferences
-        var preferencesManager: [String: FusePreferencesManageable] = [:]
-        for pref in preferences {
-            if let manager = try pref.build() as? FusePreferencesManageable {
-                preferencesManager[pref.query.name] = manager
-            }
-        }
-        
-        file = file.isEmpty ? [.document()] : file
-        var fileManager: [String: FuseFileManageable] = [:]
-        for f in file {
-            if let manager = try f.build() as? FuseFileManageable {
-                fileManager[f.query.name] = manager
-            }
-        }
-        
-        sync = sync.isEmpty ? [.noSync()] : sync
-        var syncManager: [String: FuseSyncManageable] = [:]
-        for s in sync {
-            if let manager = try s.build() as? FuseSyncManageable {
-                syncManager[s.query.name] = manager
-            }
-        }
+        let databaseManagers = try buildManagers(
+            from: database,
+            default: [.sqlite()],
+            extractName: { $0.query.name },
+            buildCast: { try $0.build() as? FuseDatabaseManageable }
+        )
 
-        return FuseStorage(
-            databaseManager: databaseManager,
-            preferencesManager: preferencesManager,
-            fileManager: fileManager,
-            syncManager: syncManager
+        let preferencesManagers = try buildManagers(
+            from: preferences,
+            default: [.userDefaults()],
+            extractName: { $0.query.name },
+            buildCast: { try $0.build() as? FusePreferencesManageable }
+        )
+
+        let fileManagers = try buildManagers(
+            from: file,
+            default: [.document()],
+            extractName: { $0.query.name },
+            buildCast: { try $0.build() as? FuseFileManageable }
+        )
+
+        let syncManagers = try buildManagers(
+            from: sync,
+            default: [.noSync()],
+            extractName: { $0.query.name },
+            buildCast: { try $0.build() as? FuseSyncManageable }
+        )
+
+        return FuseStorage(databaseManagers: databaseManagers,
+                           preferencesManagers: preferencesManagers,
+                           fileManagers: fileManagers,
+                           syncManagers: syncManagers
         )
     }
-} 
+
+    func buildManagers<Queryable, Manageable>(from items: [Queryable],
+                                              default defaultItems: [Queryable],
+                                              extractName: (Queryable) -> String,
+                                              buildCast: (Queryable) throws -> Manageable?) rethrows -> [String: Manageable] {
+        let list = items.isEmpty ? defaultItems : items
+        return try list.reduce(into: [:]) { dict, item in
+            if let manager = try buildCast(item) {
+                dict[extractName(item)] = manager
+            }
+        }
+    }
+}

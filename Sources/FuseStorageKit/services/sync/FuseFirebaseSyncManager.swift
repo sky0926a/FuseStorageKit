@@ -11,7 +11,7 @@ public final class FuseFirebaseSyncManager: FuseSyncManageable {
   
   /// Start synchronization process (optional: can be used for global listeners)
   public func startSync() {
-    // 可選：全局監聽
+      // TODO: implement
   }
   
   /// Push local database records to Firebase Storage

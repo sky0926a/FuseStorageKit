@@ -1,10 +1,10 @@
 import Foundation
 
 public enum FuseFileBuilderOptionType {
-    case document(mainFolderName: String = FuseConstants.defaultName)
-    case library(mainFolderName: String = FuseConstants.defaultName)
-    case cache(mainFolderName: String = FuseConstants.defaultName)
-    case file(mainFolderName: String = FuseConstants.defaultName, searchPathDirectory: FileManager.SearchPathDirectory = .documentDirectory, domainMask: FileManager.SearchPathDomainMask = .userDomainMask)
+    case document(mainFolderName: String)
+    case library(mainFolderName: String)
+    case cache(mainFolderName: String)
+    case file(mainFolderName: String, searchPathDirectory: FileManager.SearchPathDirectory, domainMask: FileManager.SearchPathDomainMask)
     case custom(name: String, file: FuseFileManageable)
 }
 
@@ -15,19 +15,19 @@ public struct FuseFileBuilderOption: FuseStorageBuilderOption {
         self.optionType = optionType
     }
     
-    public static func document(mainFolderName: String = FuseConstants.defaultName) -> Self {
+    public static func document(mainFolderName: String = FuseConstants.packageName) -> Self {
         return .init(optionType: .document(mainFolderName: mainFolderName))
     }
     
-    public static func library(mainFolderName: String = FuseConstants.defaultName) -> Self {
+    public static func library(mainFolderName: String = FuseConstants.packageName) -> Self {
         return .init(optionType: .library(mainFolderName: mainFolderName))
     }
     
-    public static func cache(mainFolderName: String = FuseConstants.defaultName) -> Self {
+    public static func cache(mainFolderName: String = FuseConstants.packageName) -> Self {
         return .init(optionType: .cache(mainFolderName: mainFolderName))
     }
     
-    public static func file(mainFolderName: String = FuseConstants.defaultName,
+    public static func file(mainFolderName: String = FuseConstants.packageName,
                             searchPathDirectory: FileManager.SearchPathDirectory = .documentDirectory,
                             domainMask: FileManager.SearchPathDomainMask = .userDomainMask) -> Self {
         return .init(optionType: .file(mainFolderName: mainFolderName, searchPathDirectory: searchPathDirectory, domainMask: domainMask))
@@ -68,15 +68,42 @@ public struct FuseFileBuilderOption: FuseStorageBuilderOption {
     }
 }
 
-public enum FuseFileOptionQuery: FuseStorageOptionQuery {
-    case document(_ mainFolderName: String = FuseConstants.defaultName)
-    case library(_ mainFolderName: String = FuseConstants.defaultName)
-    case cache(_ mainFolderName: String = FuseConstants.defaultName)
-    case file(_ mainFolderName: String = FuseConstants.defaultName)
+enum FuseFileOptionQueryType {
+    case document(_ mainFolderName: String)
+    case library(_ mainFolderName: String)
+    case cache(_ mainFolderName: String)
+    case file(_ mainFolderName: String)
     case custom(_ name: String)
+}
+
+public struct FuseFileOptionQuery: FuseStorageOptionQuery {
+    private let optionType: FuseFileOptionQueryType
+    init(optionType: FuseFileOptionQueryType) {
+        self.optionType = optionType
+    }
+    
+    public static func document(_ mainFolderName: String = FuseConstants.packageName) -> Self {
+        return .init(optionType: .document(mainFolderName))
+    }
+
+    public static func library(_ mainFolderName: String = FuseConstants.packageName) -> Self {
+        return .init(optionType: .library(mainFolderName))
+    }
+    
+    public static func cache(_ mainFolderName: String = FuseConstants.packageName) -> Self {
+        return .init(optionType: .cache(mainFolderName))
+    }
+
+    public static func file(_ mainFolderName: String = FuseConstants.packageName) -> Self {
+        return .init(optionType: .file(mainFolderName))
+    }
+    
+    public static func custom(_ name: String) -> Self {
+        return .init(optionType: .custom(name))
+    }
 
     public var name: String {
-        switch self {
+        switch self.optionType {
         case .document(let mainFolderName):
             return "file_document_\(mainFolderName)"
         case .library(let mainFolderName):

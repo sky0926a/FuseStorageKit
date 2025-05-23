@@ -1,7 +1,7 @@
 import Foundation
 
 enum FuseDatabaseBuilderOptionType {
-    case sqlite(path: String = FuseConstants.defaultName, encryptions: EncryptionOptions?)
+    case sqlite(path: String, encryptions: EncryptionOptions?)
     case custom(name: String, database: FuseDatabaseManageable)
 }
 
@@ -12,7 +12,7 @@ public struct FuseDatabaseBuilderOption: FuseStorageBuilderOption {
         self.optionType = optionType
     }
     
-    public static func sqlite(path: String = FuseConstants.defaultName, encryptions: EncryptionOptions? = nil) -> Self {
+    public static func sqlite(path: String = FuseConstants.databaseName, encryptions: EncryptionOptions? = nil) -> Self {
         return .init(optionType: .sqlite(path: path, encryptions: encryptions))
     }
     
@@ -39,12 +39,28 @@ public struct FuseDatabaseBuilderOption: FuseStorageBuilderOption {
     }
 }
 
-public enum FuseDatabaseOptionQuery: FuseStorageOptionQuery {
-    case sqlite(_ path: String = FuseConstants.defaultName)
+enum FuseDatabaseOptionQueryType {
+    case sqlite(_ path: String)
     case custom(_ name: String)
+}
+
+public struct FuseDatabaseOptionQuery: FuseStorageOptionQuery {
+    private let optionType: FuseDatabaseOptionQueryType
+
+    init(optionType: FuseDatabaseOptionQueryType) {
+        self.optionType = optionType
+    }
+
+    public static func sqlite(_ path: String = FuseConstants.databaseName) -> Self {
+        return .init(optionType: .sqlite(path))
+    }
+    
+    public static func custom(_ name: String) -> Self {
+        return .init(optionType: .custom(name))
+    }
 
     public var name: String {
-        switch self {
+        switch self.optionType {
         case .sqlite(let path):
             return "db_sqlite_\(path)"
         case .custom(let name):

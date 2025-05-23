@@ -8,5 +8,6 @@
 import Foundation
 
 public struct FuseConstants {
-    public static let defaultName: String = "FuseStorageKit"
+    public static let packageName: String = "FuseStorageKit"
+    public static let databaseName: String = "fuse.sqlite"
 }

@@ -647,4 +647,359 @@ class FuseDatabaseManagerTests: XCTestCase {
         XCTAssertFalse(remainingIds.contains(31), "Record with ID 31 should be deleted")
         XCTAssertFalse(remainingIds.contains(32), "Record with ID 32 should be deleted")
     }
+
+    // Test encryption with empty passphrase should fail
+    func testEncryptionWithEmptyPassphrase() throws {
+        XCTAssertThrowsError(try FuseDatabaseManager(
+            path: "empty_passphrase_test.sqlite",
+            encryptions: EncryptionOptions("")
+        )) { error in
+            guard let dbError = error as? FuseDatabaseError else {
+                XCTFail("Expected FuseDatabaseError")
+                return
+            }
+            if case .missingPassphrase = dbError {
+                // This is the expected error
+            } else {
+                XCTFail("Expected FuseDatabaseError.missingPassphrase, but got \(dbError)")
+            }
+        }
+    }
+    
+    // Test encryption passphrase validation
+    func testEncryptionPassphraseValidation() throws {
+        let validPassphrase = "ValidPassphrase123"
+        let invalidPassphrase = ""
+        
+        // Valid passphrase should work
+        let validEncryption = EncryptionOptions.standard(passphrase: validPassphrase)
+        XCTAssertNoThrow(try FuseDatabaseManager(
+            path: "valid_passphrase_test.sqlite",
+            encryptions: validEncryption
+        ))
+        
+        // Invalid (empty) passphrase should fail
+        XCTAssertThrowsError(try FuseDatabaseManager(
+            path: "invalid_passphrase_test.sqlite",
+            encryptions: EncryptionOptions(invalidPassphrase)
+        )) { error in
+            guard let dbError = error as? FuseDatabaseError else {
+                XCTFail("Expected FuseDatabaseError for empty passphrase")
+                return
+            }
+            if case .missingPassphrase = dbError {
+                // Expected error
+            } else {
+                XCTFail("Expected FuseDatabaseError.missingPassphrase, but got \(dbError)")
+            }
+        }
+        
+        // Clean up
+        let fileManager = FileManager.default
+        let docsDir = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        ["valid_passphrase_test.sqlite", "invalid_passphrase_test.sqlite"].forEach { path in
+            let url = docsDir.appendingPathComponent(path)
+            if fileManager.fileExists(atPath: url.path) {
+                try? fileManager.removeItem(at: url)
+            }
+        }
+    }
+    
+    // Test full CRUD operations on encrypted database
+    func testEncryptedDatabaseCRUDOperations() throws {
+        let fileManager = FileManager.default
+        let docsDir = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let encryptedDBPath = "crud_encrypted_test.sqlite"
+        let encryptedDBURL = docsDir.appendingPathComponent(encryptedDBPath)
+        let passphrase = "CRUDTestPassphrase456"
+        
+        // Clean up any existing test file
+        if fileManager.fileExists(atPath: encryptedDBURL.path) {
+            try fileManager.removeItem(at: encryptedDBURL)
+        }
+        
+        // Create encrypted database manager
+        let encryptionOptions = EncryptionOptions.standard(passphrase: passphrase)
+        let encryptedDBManager = try FuseDatabaseManager(
+            path: encryptedDBPath,
+            encryptions: encryptionOptions
+        )
+        
+        // Create MockRecord table in the encrypted database
+        let tableDefinition = FuseTableDefinition(
+            name: MockRecord.databaseTableName,
+            columns: [
+                FuseColumnDefinition(name: "id", type: .integer, isPrimaryKey: true),
+                FuseColumnDefinition(name: "name", type: .text, isNotNull: true),
+                FuseColumnDefinition(name: "value", type: .integer, isNotNull: true)
+            ],
+            options: [.ifNotExists]
+        )
+        try encryptedDBManager.createTable(tableDefinition)
+        
+        // Test CREATE (Add records)
+        let testRecord1 = MockRecord(id: 1, name: "Encrypted Record 1", value: 1001)
+        let testRecord2 = MockRecord(id: 2, name: "Encrypted Record 2", value: 1002)
+        try encryptedDBManager.add(testRecord1)
+        try encryptedDBManager.add([testRecord2])
+        
+        // Test READ (Fetch records)
+        let allRecords: [MockRecord] = try encryptedDBManager.fetch(of: MockRecord.self)
+        XCTAssertEqual(allRecords.count, 2, "Should have 2 records in encrypted database")
+        XCTAssertTrue(allRecords.contains { $0.name == "Encrypted Record 1" })
+        XCTAssertTrue(allRecords.contains { $0.name == "Encrypted Record 2" })
+        
+        // Test filtered fetch
+        let filteredRecords: [MockRecord] = try encryptedDBManager.fetch(
+            of: MockRecord.self,
+            filters: [FuseQueryFilter.equals(field: "value", value: 1001)]
+        )
+        XCTAssertEqual(filteredRecords.count, 1)
+        XCTAssertEqual(filteredRecords.first?.name, "Encrypted Record 1")
+        
+        // Test UPDATE via write query
+        let updateQuery = FuseQuery(
+            table: MockRecord.databaseTableName,
+            action: .update(
+                values: ["name": "Updated Encrypted Record 1"],
+                filters: [FuseQueryFilter.equals(field: "id", value: 1)]
+            )
+        )
+        try encryptedDBManager.write(updateQuery)
+        
+        // Verify update
+        let updatedRecords: [MockRecord] = try encryptedDBManager.fetch(
+            of: MockRecord.self,
+            filters: [FuseQueryFilter.equals(field: "id", value: 1)]
+        )
+        XCTAssertEqual(updatedRecords.count, 1)
+        XCTAssertEqual(updatedRecords.first?.name, "Updated Encrypted Record 1")
+        
+        // Test DELETE
+        let recordToDelete = MockRecord(id: 2, name: "Encrypted Record 2", value: 1002)
+        try encryptedDBManager.delete(recordToDelete)
+        
+        // Verify deletion
+        let remainingRecords: [MockRecord] = try encryptedDBManager.fetch(of: MockRecord.self)
+        XCTAssertEqual(remainingRecords.count, 1)
+        XCTAssertEqual(remainingRecords.first?.name, "Updated Encrypted Record 1")
+        
+        // Clean up
+        if fileManager.fileExists(atPath: encryptedDBURL.path) {
+            try fileManager.removeItem(at: encryptedDBURL)
+        }
+    }
+    
+    // Test encrypted database with complex queries
+    func testEncryptedDatabaseComplexQueries() throws {
+        let fileManager = FileManager.default
+        let docsDir = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let encryptedDBPath = "complex_query_encrypted_test.sqlite"
+        let encryptedDBURL = docsDir.appendingPathComponent(encryptedDBPath)
+        let passphrase = "ComplexQueryTestPassphrase789"
+        
+        // Clean up any existing test file
+        if fileManager.fileExists(atPath: encryptedDBURL.path) {
+            try fileManager.removeItem(at: encryptedDBURL)
+        }
+        
+        // Create encrypted database manager with high security
+        let encryptionOptions = EncryptionOptions.high(passphrase: passphrase)
+        let encryptedDBManager = try FuseDatabaseManager(
+            path: encryptedDBPath,
+            encryptions: encryptionOptions
+        )
+        
+        // Create MockRecord table
+        let tableDefinition = FuseTableDefinition(
+            name: MockRecord.databaseTableName,
+            columns: [
+                FuseColumnDefinition(name: "id", type: .integer, isPrimaryKey: true),
+                FuseColumnDefinition(name: "name", type: .text, isNotNull: true),
+                FuseColumnDefinition(name: "value", type: .integer, isNotNull: true)
+            ],
+            options: [.ifNotExists]
+        )
+        try encryptedDBManager.createTable(tableDefinition)
+        
+        // Add test data
+        let testRecords = [
+            MockRecord(id: 10, name: "Alpha", value: 100),
+            MockRecord(id: 20, name: "Beta", value: 200),
+            MockRecord(id: 30, name: "Gamma", value: 300),
+            MockRecord(id: 40, name: "Delta", value: 150),
+            MockRecord(id: 50, name: "Epsilon", value: 250)
+        ]
+        try encryptedDBManager.add(testRecords)
+        
+        // Test complex filtering
+        let complexFilters = [
+            FuseQueryFilter.greaterThan(field: "value", value: 150),
+            FuseQueryFilter.lessThan(field: "value", value: 300)
+        ]
+        let filteredRecords: [MockRecord] = try encryptedDBManager.fetch(
+            of: MockRecord.self,
+            filters: complexFilters
+        )
+        XCTAssertEqual(filteredRecords.count, 2) // Beta (200) and Epsilon (250)
+        
+        // Test sorting with limit and offset
+        let sortedRecords: [MockRecord] = try encryptedDBManager.fetch(
+            of: MockRecord.self,
+            sort: FuseQuerySort(field: "value", order: .ascending),
+            limit: 3,
+            offset: 1
+        )
+        XCTAssertEqual(sortedRecords.count, 3)
+        XCTAssertEqual(sortedRecords[0].value, 150) // Delta (skip Alpha with 100)
+        XCTAssertEqual(sortedRecords[1].value, 200) // Beta
+        XCTAssertEqual(sortedRecords[2].value, 250) // Epsilon
+        
+        // Test batch operations
+        let recordsToDelete = [
+            MockRecord(id: 10, name: "Alpha", value: 100),
+            MockRecord(id: 30, name: "Gamma", value: 300)
+        ]
+        try encryptedDBManager.delete(recordsToDelete)
+        
+        // Verify batch deletion
+        let remainingRecords: [MockRecord] = try encryptedDBManager.fetch(of: MockRecord.self)
+        XCTAssertEqual(remainingRecords.count, 3) // Should have Beta, Delta, Epsilon
+        
+        // Clean up
+        if fileManager.fileExists(atPath: encryptedDBURL.path) {
+            try fileManager.removeItem(at: encryptedDBURL)
+        }
+    }
+    
+    // Test encryption options configuration
+    func testEncryptionOptionsConfiguration() throws {
+        let passphrase = "ConfigTestPassphrase"
+        let fileManager = FileManager.default
+        let docsDir = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        
+        // Test various encryption configurations
+        let configurations = [
+            ("standard", EncryptionOptions.standard(passphrase: passphrase)),
+            ("high", EncryptionOptions.high(passphrase: passphrase)),
+            ("performance", EncryptionOptions.performance(passphrase: passphrase)),
+            ("custom", EncryptionOptions(passphrase)
+                .pageSize(8192)
+                .kdfIter(100_000)
+                .memorySecurity(true)
+                .defaultPageSize(8192)
+                .defaultKdfIter(100_000)
+            )
+        ]
+        
+        for (configName, encryptionOptions) in configurations {
+            let dbPath = "config_test_\(configName).sqlite"
+            let dbURL = docsDir.appendingPathComponent(dbPath)
+            
+            // Clean up any existing file
+            if fileManager.fileExists(atPath: dbURL.path) {
+                try fileManager.removeItem(at: dbURL)
+            }
+            
+            // Test database creation with each configuration
+            XCTAssertNoThrow(try FuseDatabaseManager(
+                path: dbPath,
+                encryptions: encryptionOptions
+            ), "Failed to create encrypted database with \(configName) configuration")
+            
+            // Verify file was created
+            XCTAssertTrue(fileManager.fileExists(atPath: dbURL.path), 
+                         "Database file should exist for \(configName) configuration")
+            
+            // Clean up
+            if fileManager.fileExists(atPath: dbURL.path) {
+                try fileManager.removeItem(at: dbURL)
+            }
+        }
+    }
+    
+    // Test database reopening with different passphrases
+    func testEncryptedDatabaseReopeningWithDifferentPassphrases() throws {
+        let fileManager = FileManager.default
+        let docsDir = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let encryptedDBPath = "reopen_test.sqlite"
+        let encryptedDBURL = docsDir.appendingPathComponent(encryptedDBPath)
+        let correctPassphrase = "CorrectPassphrase123"
+        let wrongPassphrase = "WrongPassphrase456"
+        
+        // Clean up any existing test file
+        if fileManager.fileExists(atPath: encryptedDBURL.path) {
+            try fileManager.removeItem(at: encryptedDBURL)
+        }
+        
+        // 1. Create encrypted database with correct passphrase
+        do {
+            let encryptionOptions = EncryptionOptions.standard(passphrase: correctPassphrase)
+            let encryptedDBManager = try FuseDatabaseManager(
+                path: encryptedDBPath,
+                encryptions: encryptionOptions
+            )
+            
+            // Create table and add data
+            let tableDefinition = FuseTableDefinition(
+                name: "test_table",
+                columns: [
+                    FuseColumnDefinition(name: "id", type: .integer, isPrimaryKey: true),
+                    FuseColumnDefinition(name: "data", type: .text, isNotNull: true)
+                ],
+                options: [.ifNotExists]
+            )
+            try encryptedDBManager.createTable(tableDefinition)
+            
+            let insertQuery = FuseQuery(
+                table: "test_table",
+                action: .insert(values: ["id": 1, "data": "secret_data"])
+            )
+            try encryptedDBManager.write(insertQuery)
+        }
+        
+        // 2. Try to open with wrong passphrase (should fail)
+        XCTAssertThrowsError(try FuseDatabaseManager(
+            path: encryptedDBPath,
+            encryptions: EncryptionOptions.standard(passphrase: wrongPassphrase)
+        ), "Opening encrypted database with wrong passphrase should fail")
+        
+        // 3. Open with correct passphrase and verify data integrity
+        do {
+            let reopenedDBManager = try FuseDatabaseManager(
+                path: encryptedDBPath,
+                encryptions: EncryptionOptions.standard(passphrase: correctPassphrase)
+            )
+            
+            // Verify table exists
+            let tableExists = try reopenedDBManager.tableExists("test_table")
+            XCTAssertTrue(tableExists, "Table should exist in reopened encrypted database")
+            
+            // Verify data exists
+            struct TestRecord: FuseDatabaseRecord {
+                static var databaseTableName: String = "test_table"
+                static var _fuseidField: String = "id"
+                
+                var id: Int64
+                var data: String
+                
+                static func fromDatabase(row: GRDB.Row) throws -> TestRecord {
+                    return TestRecord(id: row["id"], data: row["data"])
+                }
+                
+                func toDatabaseValues() -> [String : (any GRDB.DatabaseValueConvertible)?] {
+                    return ["id": id, "data": data]
+                }
+            }
+            
+            let records: [TestRecord] = try reopenedDBManager.fetch(of: TestRecord.self)
+            XCTAssertEqual(records.count, 1, "Should have one record in reopened database")
+            XCTAssertEqual(records.first?.data, "secret_data", "Data should be intact after reopening")
+        }
+        
+        // Clean up
+        if fileManager.fileExists(atPath: encryptedDBURL.path) {
+            try fileManager.removeItem(at: encryptedDBURL)
+        }
+    }
 } 

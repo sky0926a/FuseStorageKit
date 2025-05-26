@@ -4,7 +4,7 @@ import UniformTypeIdentifiers
 struct NotesListView: View {
     @StateObject private var viewModel = NotesViewModel()
     @State private var isAddNotePresented = false
-    @State private var showExportSuccess = false
+    @State private var showKeychainDemo = false
     
     var body: some View {
         NavigationView {
@@ -87,44 +87,6 @@ struct NotesListView: View {
                     .padding()
                 }
                 
-                // 匯出中顯示
-                if viewModel.isExporting {
-                    VStack {
-                        ProgressView()
-                            .scaleEffect(1.5)
-                        Text("正在準備文件...")
-                            .padding(.top, 10)
-                    }
-                    .padding()
-                    .background(Color(.systemBackground))
-                    .cornerRadius(12)
-                    .shadow(radius: 5)
-                }
-                
-                // 匯出成功提示
-                if showExportSuccess {
-                    VStack {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.green)
-                            .font(.system(size: 50))
-                        
-                        Text("文件分享成功！")
-                            .font(.headline)
-                            .padding(.top, 8)
-                    }
-                    .padding()
-                    .background(Color(.systemBackground))
-                    .cornerRadius(12)
-                    .shadow(radius: 5)
-                    .onAppear {
-                        // 顯示 2 秒後自動消失
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                            withAnimation {
-                                showExportSuccess = false
-                            }
-                        }
-                    }
-                }
             }
             .navigationTitle("我的筆記")
             .toolbar {
@@ -139,11 +101,10 @@ struct NotesListView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     HStack {
                         Button {
-                            viewModel.prepareNotesExport()
+                            showKeychainDemo = true
                         } label: {
-                            Image(systemName: "square.and.arrow.up")
+                            Image(systemName: "key.fill")
                         }
-                        .disabled(viewModel.isExporting)
                         
                         Button {
                             isAddNotePresented = true
@@ -160,12 +121,8 @@ struct NotesListView: View {
             .sheet(isPresented: $isAddNotePresented) {
                 AddNoteView(viewModel: viewModel)
             }
-            .sheet(isPresented: $viewModel.showShareSheet, onDismiss: {
-                viewModel.cleanupExportedFile()
-            }) {
-                if let url = viewModel.exportedZipURL {
-                    ShareSheet(items: [url])
-                }
+            .sheet(isPresented: $showKeychainDemo) {
+                KeychainDemoView()
             }
             .preferredColorScheme(viewModel.isDarkMode ? .dark : .light)
         }

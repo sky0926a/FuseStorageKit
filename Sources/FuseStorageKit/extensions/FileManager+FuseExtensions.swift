@@ -7,6 +7,12 @@ public extension FileManager {
     func documentsDirectory() -> URL {
         return urls(for: .documentDirectory, in: .userDomainMask)[0]
     }
+
+    /// Returns the Application Support directory URL
+    /// - Returns: URL to the app's Application Support directory
+    func temporaryDirectory() -> URL {
+        return urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+    }
     
     /// Creates required directories for a file path if they don't exist
     /// - Parameter url: The URL of the file

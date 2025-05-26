@@ -1,12 +1,16 @@
-/// Defines a type-safe, Codable-backed key–value store (e.g. on top of UserDefaults).
-public protocol FusePreferencesManageable {
+/// Protocol defining preferences storage operations for FuseStorageKit
+/// 
+/// This protocol provides a type-safe, Codable-backed key-value store interface
+/// that can be implemented using various storage backends such as UserDefaults
+/// or Keychain. It ensures consistent API for storing and retrieving user preferences.
+public protocol FusePreferencesManageable: FuseManageable {
     /// Store a Codable value for the specified key.
     ///
     /// - Parameters:
     ///   - value: The value to store.
     ///   - key:   The key under which to store the value.
     /// - Throws: Encoding or storage errors.
-    func set<Value: Codable>(_ value: Value, forKey key: String)
+    func set<Value: Codable>(_ value: Value, forKey key: String) throws
 
     /// Retrieve a Codable value for the specified key.
     ///

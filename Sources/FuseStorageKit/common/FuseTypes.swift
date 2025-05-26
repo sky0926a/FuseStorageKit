@@ -2,10 +2,16 @@ import Foundation
 
 #if os(iOS) || os(tvOS) || os(watchOS)
 import UIKit
-/// 統一的圖像類型，在 iOS/tvOS/watchOS 平台使用 UIImage
+/// Cross-platform image type alias for iOS, tvOS, and watchOS platforms
+/// 
+/// This typealias provides a unified interface for image handling across different
+/// Apple platforms, mapping to UIImage on iOS/tvOS/watchOS for consistent API usage.
 public typealias FuseImage = UIImage
 #elseif os(macOS)
 import AppKit
-/// 統一的圖像類型，在 macOS 平台使用 NSImage
+/// Cross-platform image type alias for macOS platform
+/// 
+/// This typealias provides a unified interface for image handling across different
+/// Apple platforms, mapping to NSImage on macOS for consistent API usage.
 public typealias FuseImage = NSImage
 #endif

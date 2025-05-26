@@ -1,5 +1,4 @@
 import Foundation
-import GRDB
 
 /// Defines the available comparison operators for database queries
 public enum FuseQueryOperator {
@@ -211,7 +210,7 @@ public struct FuseQuery {
 
     /// Builds the SQL query and its parameters
     /// - Returns: A tuple containing the SQL query and its parameter values
-    internal func build() -> (sql: String, args: [FuseDatabaseValueConvertible]) {
+    public func build() -> (sql: String, args: [FuseDatabaseValueConvertible]) {
         switch action {
         case .select(let fields, let filters, let sort, let limit, let offset):
             var sql = "SELECT \(fields.joined(separator: ", ")) FROM \(table)"
@@ -237,7 +236,7 @@ public struct FuseQuery {
             let cols = sortedKeys.joined(separator: ", ")
             let placeholders = Array(repeating: "?", count: values.count).joined(separator: ", ")
             let sql = "INSERT INTO \(table) (\(cols)) VALUES (\(placeholders))"
-            let args = sortedKeys.map { (values[$0] as? FuseDatabaseValueConvertible) ?? NSNull() }
+            let args: [FuseDatabaseValueConvertible] = sortedKeys.map { (values[$0] as? FuseDatabaseValueConvertible) ?? NSNull() }
             return (sql, args)
 
         case .insertMany(let manyValues):
@@ -258,7 +257,8 @@ public struct FuseQuery {
             // 組裝所有參數，確保每筆記錄的欄位順序與 allKeys 一致
             var args: [FuseDatabaseValueConvertible] = []
             for values in manyValues {
-                args.append(contentsOf: allKeys.map { values[$0] as? FuseDatabaseValueConvertible ?? NSNull() })
+                let mappedValues: [FuseDatabaseValueConvertible] = allKeys.map { values[$0] as? FuseDatabaseValueConvertible ?? NSNull() }
+                args.append(contentsOf: mappedValues)
             }
             
             return (sql, args)
@@ -267,7 +267,7 @@ public struct FuseQuery {
             let sortedKeys = values.keys.sorted()
             let setClause = sortedKeys.map { "\($0) = ?" }.joined(separator: ", ")
             var sql = "UPDATE \(table) SET \(setClause)"
-            var args = sortedKeys.map { (values[$0] as? FuseDatabaseValueConvertible) ?? NSNull() }
+            var args: [FuseDatabaseValueConvertible] = sortedKeys.map { (values[$0] as? FuseDatabaseValueConvertible) ?? NSNull() }
             if !filters.isEmpty {
                 let parts = filters.map { f in f.build() }
                 sql += " WHERE " + parts.map { $0.clause }.joined(separator: " AND ")
@@ -309,7 +309,7 @@ public struct FuseQuery {
                 .joined(separator: ", ")
                 
             let sql = "INSERT INTO \(table) (\(cols)) VALUES (\(placeholders)) ON CONFLICT(\(conflictList)) DO UPDATE SET \(updateList)"
-            let args = sortedValueKeys.map { (values[$0] as? FuseDatabaseValueConvertible) ?? NSNull() }
+            let args: [FuseDatabaseValueConvertible] = sortedValueKeys.map { (values[$0] as? FuseDatabaseValueConvertible) ?? NSNull() }
             return (sql, args)
         }
     }

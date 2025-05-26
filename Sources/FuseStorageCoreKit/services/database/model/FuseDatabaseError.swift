@@ -24,4 +24,10 @@ public enum FuseDatabaseError: Error {
     /// This error occurs when trying to open an encrypted database without
     /// providing the required passphrase or when the passphrase is empty.
     case missingPassphrase
+    
+    /// Indicates that encryption is not supported in the current configuration
+    /// 
+    /// This error occurs when trying to use encryption features with a database
+    /// implementation that doesn't support encryption (e.g., standard GRDB without SQLCipher).
+    case encryptionNotSupported
 }

@@ -1,7 +1,6 @@
 import Foundation
-import GRDB
 
-/// Configuration options for database encryption using SQLCipher
+/// Configuration options for database encryption
 /// 
 /// This structure provides a fluent interface for configuring database encryption
 /// settings including passphrase, page size, key derivation parameters, and memory
@@ -14,7 +13,6 @@ public struct EncryptionOptions {
     private var memorySecurity: Bool?
     private var defaultKdfIter: Int?
     private var defaultPageSize: Int?
-
 
     // MARK: - Initializer
     /// Initializes encryption options with a passphrase
@@ -78,38 +76,20 @@ public struct EncryptionOptions {
         return copy
     }
 
-    // MARK: - Apply PRAGMA settings
-    /// Applies encryption settings to the database
-    /// - Parameter db: The database to apply settings to
-    /// - Throws: Database errors if encryption cannot be applied
-    func apply(to db: Database) throws {
-        // Enforce passphrase as required
-        guard !passphrase.isEmpty else {
-            throw FuseDatabaseError.missingPassphrase
-        }
-        
-        try db.usePassphrase(passphrase)
-
-        if let pageSize = pageSize {
-            try db.execute(sql: "PRAGMA cipher_page_size = \(pageSize)")
-        }
-        if let kdfIter = kdfIter {
-            try db.execute(sql: "PRAGMA kdf_iter = \(kdfIter)")
-        }
-        if memorySecurity == true {
-            try db.execute(sql: "PRAGMA cipher_memory_security = ON")
-        }
-        if let defaultKdf = defaultKdfIter {
-            try db.execute(sql: "PRAGMA cipher_default_kdf_iter = \(defaultKdf)")
-        }
-        if let defaultPage = defaultPageSize {
-            try db.execute(sql: "PRAGMA cipher_default_page_size = \(defaultPage)")
-        }
+    // MARK: - Internal properties for concrete implementations
+    internal var allSettings: [String: Any] {
+        var settings: [String: Any] = ["passphrase": passphrase]
+        if let pageSize = pageSize { settings["pageSize"] = pageSize }
+        if let kdfIter = kdfIter { settings["kdfIter"] = kdfIter }
+        if let memorySecurity = memorySecurity { settings["memorySecurity"] = memorySecurity }
+        if let defaultKdfIter = defaultKdfIter { settings["defaultKdfIter"] = defaultKdfIter }
+        if let defaultPageSize = defaultPageSize { settings["defaultPageSize"] = defaultPageSize }
+        return settings
     }
 }
 
 extension EncryptionOptions {
-        // MARK: - Preset configurations
+    // MARK: - Preset configurations
     /// Standard: balanced security and performance.
     ///
     /// - passphrase: required user-provided key.

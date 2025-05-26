@@ -32,7 +32,7 @@ dependencies: [
     // GRDB with SQLCipher support for encrypted databases
     .package(url: "https://github.com/duckduckgo/GRDB.swift.git", from: "3.0.0"),
     // Optional: Required only if using Firebase sync
-    .package(url: "https://github.com/firebase/firebase-ios-sdk.git", from: "10.0.0")
+    .package(url: "https://github.com/firebase/firebase-ios-sdk.git", from: "11.0.0")
 ]
 ```
 
@@ -43,7 +43,7 @@ dependencies: [
     // Original GRDB for standard SQLite databases
     .package(url: "https://github.com/groue/GRDB.swift.git", from: "7.5.0"),
     // Optional: Required only if using Firebase sync
-    .package(url: "https://github.com/firebase/firebase-ios-sdk.git", from: "10.0.0")
+    .package(url: "https://github.com/firebase/firebase-ios-sdk.git", from: "11.0.0")
 ]
 ```
 

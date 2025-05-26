@@ -31,27 +31,26 @@ extension FuseDatabaseRecord where Self: FetchableRecord & PersistableRecord {
     // GRDB integration is handled automatically through protocol conformance
 }
 
-/// A concrete implementation of `FuseDatabaseManageable` protocol using GRDB as the underlying database engine.
-/// This class provides a robust and type-safe interface for SQLite database operations with SQLCipher support.
+/// A concrete implementation of `FuseDatabaseManageable` protocol using standard GRDB.
+/// This class provides a robust and type-safe interface for SQLite database operations without encryption support.
 public final class FuseDatabaseManager: FuseDatabaseManageable {
     private let dbQueue: DatabaseQueue
 
     /// Initializes a new database manager with a specified SQLite file path.
     /// - Parameters:
     ///   - path: The name of the SQLite database file. Defaults to "fuse.sqlite"
-    ///   - encryptions: Optional encryption options for database encryption. If provided, SQLCipher will be used to encrypt the database.
+    ///   - encryptions: Optional encryption options. Note: Encryption is not supported in the standard version.
     /// - Throws: Database initialization errors if the file cannot be created or accessed
     public init(path: String = "fuse.sqlite", encryptions: EncryptionOptions? = nil) throws {
+        if encryptions != nil {
+            throw FuseDatabaseError.encryptionNotSupported
+        }
+        
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         let url = docs.appendingPathComponent(path)
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
 
-        var configuration = Configuration()
-        if let encryptions = encryptions {
-            configuration.prepareDatabase { db in
-                try self.applyEncryption(encryptions, to: db)
-            }
-        }
+        let configuration = Configuration()
         self.dbQueue = try DatabaseQueue(path: url.path, configuration: configuration)
     }
 
@@ -59,39 +58,6 @@ public final class FuseDatabaseManager: FuseDatabaseManageable {
     /// - Parameter dbQueue: An existing `DatabaseQueue` instance
     init(dbQueue: DatabaseQueue) {
         self.dbQueue = dbQueue
-    }
-
-    // MARK: - Encryption Support
-    
-    /// Applies encryption settings to the database
-    /// - Parameters:
-    ///   - options: The encryption options to apply
-    ///   - db: The database to apply settings to
-    /// - Throws: Database errors if encryption cannot be applied
-    private func applyEncryption(_ options: EncryptionOptions, to db: Database) throws {
-        let settings = options.allSettings
-        
-        guard let passphrase = settings["passphrase"] as? String, !passphrase.isEmpty else {
-            throw FuseDatabaseError.missingPassphrase
-        }
-        
-        try db.usePassphrase(passphrase)
-
-        if let pageSize = settings["pageSize"] as? Int {
-            try db.execute(sql: "PRAGMA cipher_page_size = \(pageSize)")
-        }
-        if let kdfIter = settings["kdfIter"] as? Int {
-            try db.execute(sql: "PRAGMA kdf_iter = \(kdfIter)")
-        }
-        if let memorySecurity = settings["memorySecurity"] as? Bool, memorySecurity {
-            try db.execute(sql: "PRAGMA cipher_memory_security = ON")
-        }
-        if let defaultKdf = settings["defaultKdfIter"] as? Int {
-            try db.execute(sql: "PRAGMA cipher_default_kdf_iter = \(defaultKdf)")
-        }
-        if let defaultPage = settings["defaultPageSize"] as? Int {
-            try db.execute(sql: "PRAGMA cipher_default_page_size = \(defaultPage)")
-        }
     }
 
     // MARK: - Table Management
@@ -322,4 +288,4 @@ public final class FuseDatabaseManager: FuseDatabaseManageable {
         case .custom(let s): return convertToDBColumnType(s)
         }
     }
-}
+} 

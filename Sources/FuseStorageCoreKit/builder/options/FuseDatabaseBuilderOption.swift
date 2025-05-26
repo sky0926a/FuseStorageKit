@@ -1,8 +1,13 @@
 import Foundation
 
+/// Factory protocol for creating database managers
+public protocol FuseDatabaseManagerFactory {
+    func createDatabaseManager(path: String, encryptions: EncryptionOptions?) throws -> FuseDatabaseManageable
+}
+
 /// Internal enumeration defining the types of database configurations available
 enum FuseDatabaseBuilderOptionType {
-    case sqlite(path: String, encryptions: EncryptionOptions?)
+    case sqlite(path: String, encryptions: EncryptionOptions?, factory: FuseDatabaseManagerFactory)
     case custom(name: String, database: FuseDatabaseManageable)
 }
 
@@ -28,9 +33,10 @@ public struct FuseDatabaseBuilderOption: FuseStorageBuilderOption {
     /// - Parameters:
     ///   - path: The SQLite database filename. Defaults to the standard database name
     ///   - encryptions: Optional encryption configuration for database security
+    ///   - factory: The factory to create the database manager
     /// - Returns: A configured database builder option
-    public static func sqlite(_ path: String = FuseConstants.databaseName, encryptions: EncryptionOptions? = nil) -> Self {
-        return .init(optionType: .sqlite(path: path, encryptions: encryptions))
+    public static func sqlite(_ path: String = FuseConstants.databaseName, encryptions: EncryptionOptions? = nil, factory: FuseDatabaseManagerFactory) -> Self {
+        return .init(optionType: .sqlite(path: path, encryptions: encryptions, factory: factory))
     }
     
     /// Creates a custom database configuration using a provided database manager
@@ -49,8 +55,8 @@ public struct FuseDatabaseBuilderOption: FuseStorageBuilderOption {
     
     public func build() throws -> FuseManageable {
         switch self.optionType {
-        case .sqlite(let path, let encryptions):
-            return try FuseDatabaseManager(path: path, encryptions: encryptions)
+        case .sqlite(let path, let encryptions, let factory):
+            return try factory.createDatabaseManager(path: path, encryptions: encryptions)
         case .custom(_, let database):
             return database
         }
@@ -58,7 +64,7 @@ public struct FuseDatabaseBuilderOption: FuseStorageBuilderOption {
     
     public var name: String {
         switch self.optionType {
-        case .sqlite(let path, _):
+        case .sqlite(let path, _, _):
             return "db_sqlite_\(path)"
         case .custom(let name, _):
             return "db_custom_\(name)"

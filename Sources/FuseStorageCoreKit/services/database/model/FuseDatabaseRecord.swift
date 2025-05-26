@@ -1,13 +1,24 @@
 import Foundation
-import GRDB
 
-/// A type alias for GRDB's DatabaseValueConvertible to maintain consistency in the FuseStorageKit API
-public typealias FuseDatabaseValueConvertible = DatabaseValueConvertible
+/// A protocol that defines the requirements for database value conversion in FuseStorageKit.
+/// This is an abstraction that allows different database implementations.
+public protocol FuseDatabaseValueConvertible {
+    // This will be implemented by the concrete database implementations
+}
+
+// Basic types conformance
+extension String: FuseDatabaseValueConvertible {}
+extension Int: FuseDatabaseValueConvertible {}
+extension Int64: FuseDatabaseValueConvertible {}
+extension Double: FuseDatabaseValueConvertible {}
+extension Bool: FuseDatabaseValueConvertible {}
+extension Date: FuseDatabaseValueConvertible {}
+extension Data: FuseDatabaseValueConvertible {}
+extension NSNull: FuseDatabaseValueConvertible {}
 
 /// A protocol that defines the requirements for database records in FuseStorageKit.
-/// This protocol combines Codable for JSON serialization, FetchableRecord for reading from the database,
-/// and PersistableRecord for writing to the database.
-public protocol FuseDatabaseRecord: Codable, FetchableRecord, PersistableRecord {
+/// This protocol provides an abstraction layer that can work with different database implementations.
+public protocol FuseDatabaseRecord: Codable {
     /// The unique identifier for the record in the database
     var _fuseid: FuseDatabaseValueConvertible { get }
     

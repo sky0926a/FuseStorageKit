@@ -1,14 +1,15 @@
 import Foundation
-import FirebaseStorage
+import FirebaseFirestore
 
-#if canImport(FirebaseStorage)
+
+#if canImport(FirebaseFirestore)
 /// Implementation of FuseSyncManageable that uses Firebase Storage for remote synchronization
 /// 
 /// This class provides cloud-based data synchronization using Google Firebase Storage,
 /// enabling real-time data sharing across devices and platforms. It handles the upload
 /// and download of database records to/from Firebase Storage buckets.
 public final class FuseFirebaseSyncManager: FuseSyncManageable {
-  private let storage = Storage.storage()
+    private let db = Firestore.firestore()
   
   /// Initialize a new Firebase sync manager
   /// 
@@ -35,12 +36,7 @@ public final class FuseFirebaseSyncManager: FuseSyncManageable {
   ///   - items: The records to push to Firebase Storage
   ///   - path: The Firebase Storage path where the records will be stored
   public func pushLocalChanges<T: FuseDatabaseRecord>(_ items: [T], at path: String) {
-    items.forEach { item in
-      if let data = try? JSONEncoder().encode(item) {
-        let ref = storage.reference(withPath: "\(path)/\(UUID().uuidString).json")
-        _ = ref.putData(data, metadata: nil)
-      }
-    }
+   
   }
   
   /// Observe changes from Firebase Storage at the specified path
@@ -57,11 +53,7 @@ public final class FuseFirebaseSyncManager: FuseSyncManageable {
     path: String,
     handler: @escaping (Result<Data, Error>) -> Void
   ) {
-    let ref = storage.reference(withPath: path)
-    ref.getData(maxSize: 10*1024*1024) { data, err in
-      if let e = err { handler(.failure(e)) }
-      else if let d = data { handler(.success(d)) }
-    }
+    
   }
 }
 #endif 

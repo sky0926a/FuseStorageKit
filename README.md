@@ -7,7 +7,7 @@ FuseStorageKit is a lightweight storage solution for iOS and macOS, providing a 
 - User Preferences
 - Cloud Synchronization (optional)
 
-It allows developers to interact with various storage mechanisms through a single facade, abstracting away the complexities of underlying implementations like GRDB or Firebase Storage.
+It allows developers to interact with various storage mechanisms through a single facade, abstracting away the complexities of underlying implementations like GRDB or Firebase Store.
 
 ## Features
 
@@ -604,22 +604,15 @@ syncManager.triggerManualSync()
 
 ### Core Dependencies
 
-#### Database Dependencies (Choose One)
+#### Database Dependencies
 
-**Option 1: GRDB.swift with SQLCipher (Recommended for encrypted databases)**
+**GRDB.swift with SQLCipher (Recommended for encrypted databases)**
 - **GRDB.swift with SQLCipher**: [duckduckgo/GRDB.swift](https://github.com/duckduckgo/GRDB.swift) - A fork of GRDB with integrated SQLCipher Community Edition support, packaged as XCFramework for Swift Package Manager.
   - GRDB: 7.4.1
   - SQLCipher: 4.7.0
   - Package Version: 3.0.0
   - License: MIT
   - Features: Enterprise-grade AES-256 encryption, XCFramework packaging
-
-**Option 2: Original GRDB.swift (For standard SQLite databases)**
-- **GRDB.swift**: [groue/GRDB.swift](https://github.com/groue/GRDB.swift) - A toolkit for SQLite databases, with a focus on application development.
-  - Latest Version: 7.5.0
-  - License: MIT
-  - Stars: 7.5k+ on GitHub
-  - Features: Comprehensive SQLite toolkit, extensive documentation, active community
 
 #### Sync Dependencies
 
@@ -662,7 +655,7 @@ FuseStorageKit is released under the MIT License. See the [LICENSE](LICENSE) fil
 ### Third-Party Library Licenses
 FuseStorageKit uses the following third-party libraries, each with their own licenses:
 
-#### Database Libraries (Choose One)
+#### Database Libraries
 
 1. **GRDB.swift with SQLCipher (DuckDuckGo Fork)**
    - License: MIT License

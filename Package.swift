@@ -26,7 +26,7 @@ let package = Package(
       name: "FuseStorageKit",
       dependencies: [
         "GRDB",
-        .product(name: "FirebaseStorage", package: "firebase-ios-sdk"),
+        .product(name: "FirebaseFirestore", package: "firebase-ios-sdk"),
       ],
       path: "Sources/FuseStorageKit",
       swiftSettings: [

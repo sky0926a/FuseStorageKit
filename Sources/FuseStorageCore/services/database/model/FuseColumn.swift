@@ -1,5 +1,4 @@
 import Foundation
-import GRDB
 
 /// Defines the supported column types for database tables
 public enum FuseColumnType {

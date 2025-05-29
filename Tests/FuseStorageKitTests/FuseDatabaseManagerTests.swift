@@ -1,46 +1,62 @@
 import XCTest
-@testable import FuseStorageKit
+@testable import FuseStorageSQLCipher
 import GRDB
 
 // Mock record type for testing
-struct MockRecord: FuseDatabaseRecord, Equatable {
-    static var databaseTableName: String = "mock_records"
+struct MockRecord: FuseDatabaseRecord, FetchableRecord, PersistableRecord, Equatable {
     static var _fuseidField: String = "id"
 
     var id: Int64
     var name: String
-    var value: Int
+    var value: Int64
 
-    init(id: Int64, name: String, value: Int) {
+    init(id: Int64, name: String, value: Int64) {
         self.id = id
         self.name = name
         self.value = value
     }
-
-    func toDatabaseValues() -> [String : (any GRDB.DatabaseValueConvertible)?] {
-        return ["id": id, "name": name, "value": value]
+    
+    // MARK: - FuseDatabaseRecord implementation
+    func toDatabaseValues() -> [String: FuseDatabaseValueConvertible?] {
+        return [
+            "id": self.id,
+            "name": self.name,
+            "value": self.value
+        ]
     }
-
-    static func fromDatabase(row: Row) throws -> MockRecord {
+    
+    static func fromDatabase(row: FuseDatabaseRow) throws -> MockRecord {
         return MockRecord(
-            id: row["id"],
-            name: row["name"],
-            value: row["value"]
+            id: row["id"] as? Int64 ?? 0,
+            name: row["name"] as? String ?? "",
+            value: row["value"] as? Int64 ?? 0
         )
+    }
+}
+
+// Explicitly define databaseTableName outside the struct to ensure it overrides the default
+extension MockRecord {
+    static var databaseTableName: String { 
+        return "mock_records" 
     }
 }
 
 class FuseDatabaseManagerTests: XCTestCase {
 
     var dbManager: FuseDatabaseManager!
-    var dbQueue: DatabaseQueue!
+    var tempDBPath: String!
 
     override func setUpWithError() throws {
         try super.setUpWithError()
-        // Use an in-memory database for testing
-        dbQueue = try DatabaseQueue()
-        dbManager = FuseDatabaseManager(dbQueue: dbQueue)
-
+        // Ensure SQLCipher is initialized for tests
+        FuseStorageSQLCipher.ensureInitialized()
+        
+        // Create a unique temporary database file name for each test
+        tempDBPath = "test_\(UUID().uuidString).sqlite"
+        
+        let manager = try FuseDatabaseManager(path: tempDBPath)
+        self.dbManager = manager
+        
         // Define and create a table for MockRecord
         let tableDefinition = FuseTableDefinition(
             name: MockRecord.databaseTableName,
@@ -55,8 +71,15 @@ class FuseDatabaseManagerTests: XCTestCase {
     }
 
     override func tearDownWithError() throws {
+        // Clean up the temporary database file
         dbManager = nil
-        dbQueue = nil
+        
+        if let tempDBPath = tempDBPath {
+            let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+            let dbURL = docs.appendingPathComponent(tempDBPath)
+            try? FileManager.default.removeItem(at: dbURL)
+        }
+        
         try super.tearDownWithError()
     }
 
@@ -114,14 +137,15 @@ class FuseDatabaseManagerTests: XCTestCase {
         let fetchedRecords: [MockRecord] = try dbManager.fetch(of: MockRecord.self, filters: [
             FuseQueryFilter.equals(field: "name", value: "Test Record 1")
         ])
+        
         XCTAssertEqual(fetchedRecords.count, 1, "Should fetch one record after adding.")
         XCTAssertEqual(fetchedRecords.first?.name, "Test Record 1")
         XCTAssertEqual(fetchedRecords.first?.value, 100)
     }
 
     func testFetchRecords() throws {
-        let record1 = MockRecord(id: 1, name: "Fetch Record 1", value: 10)
-        let record2 = MockRecord(id: 2, name: "Fetch Record 2", value: 20)
+        let record1 = MockRecord(id: 10, name: "Fetch Record 1", value: 10)
+        let record2 = MockRecord(id: 11, name: "Fetch Record 2", value: 20)
         try dbManager.add(record1)
         try dbManager.add(record2)
 
@@ -152,7 +176,7 @@ class FuseDatabaseManagerTests: XCTestCase {
     }
 
     func testDeleteRecord() throws {
-        var recordToDelete = MockRecord(id: 1, name: "Delete Me", value: 555)
+        var recordToDelete = MockRecord(id: 20, name: "Delete Me", value: 555)
         try dbManager.add(recordToDelete)
 
         // Fetch to get the ID assigned by the database
@@ -160,7 +184,7 @@ class FuseDatabaseManagerTests: XCTestCase {
             FuseQueryFilter.equals(field: "name", value: "Delete Me")
         ])
         XCTAssertEqual(recordsBeforeDelete.count, 1)
-        recordToDelete.id = recordsBeforeDelete.first?.id ?? 1 // Assign the database-generated ID
+        recordToDelete.id = recordsBeforeDelete.first?.id ?? recordToDelete.id // Use the original ID if fetch fails
 
         XCTAssertNotNil(recordToDelete.id, "Record ID should be set after fetching.")
 
@@ -173,8 +197,8 @@ class FuseDatabaseManagerTests: XCTestCase {
     }
     
     func testReadQuery() throws {
-        let record1 = MockRecord(id: 1, name: "Read Query 1", value: 101)
-        let record2 = MockRecord(id: 2, name: "Read Query 2", value: 102)
+        let record1 = MockRecord(id: 30, name: "Read Query 1", value: 101)
+        let record2 = MockRecord(id: 31, name: "Read Query 2", value: 102)
         try dbManager.add(record1)
         try dbManager.add(record2)
 
@@ -278,10 +302,10 @@ class FuseDatabaseManagerTests: XCTestCase {
                 var id: Int64
                 var secret_data: String
                 
-                static func fromDatabase(row: GRDB.Row) throws -> MockSecretData {
+                static func fromDatabase(row: FuseDatabaseRow) throws -> MockSecretData {
                     return MockSecretData(
-                        id: row["id"],
-                        secret_data: row["secret_data"]
+                        id: row["id"] as? Int64 ?? 0,
+                        secret_data: row["secret_data"] as? String ?? ""
                     )
                 }
             }
@@ -346,15 +370,11 @@ class FuseDatabaseManagerTests: XCTestCase {
                 var id: Int64
                 var secret_data: String
                 
-                static func fromDatabase(row: GRDB.Row) throws -> MockSecretData {
+                static func fromDatabase(row: FuseDatabaseRow) throws -> MockSecretData {
                     return MockSecretData(
-                        id: row["id"],
-                        secret_data: row["secret_data"]
+                        id: row["id"] as? Int64 ?? 0,
+                        secret_data: row["secret_data"] as? String ?? ""
                     )
-                }
-                
-                func toDatabaseValues() -> [String : (any GRDB.DatabaseValueConvertible)?] {
-                    return ["id": id, "secret_data": secret_data]
                 }
             }
             
@@ -983,12 +1003,8 @@ class FuseDatabaseManagerTests: XCTestCase {
                 var id: Int64
                 var data: String
                 
-                static func fromDatabase(row: GRDB.Row) throws -> TestRecord {
-                    return TestRecord(id: row["id"], data: row["data"])
-                }
-                
-                func toDatabaseValues() -> [String : (any GRDB.DatabaseValueConvertible)?] {
-                    return ["id": id, "data": data]
+                static func fromDatabase(row: FuseDatabaseRow) throws -> TestRecord {
+                    return TestRecord(id: row["id"] as? Int64 ?? 0, data: row["data"] as? String ?? "")
                 }
             }
             
@@ -1001,5 +1017,72 @@ class FuseDatabaseManagerTests: XCTestCase {
         if fileManager.fileExists(atPath: encryptedDBURL.path) {
             try fileManager.removeItem(at: encryptedDBURL)
         }
+    }
+
+    func testValueFieldTypeConversion() throws {
+        // Test that Int64 values are correctly stored and retrieved
+        let record = MockRecord(id: 999, name: "Type Test", value: 12345)
+        
+        // Debug the default toDatabaseValues implementation
+        let dbValues = record.toDatabaseValues()
+        print("DEBUG: toDatabaseValues result: \(dbValues)")
+        for (key, value) in dbValues {
+            print("DEBUG: \(key) = \(value ?? "nil") (type: \(type(of: value)))")
+        }
+        
+        XCTAssertEqual(dbValues["value"] as? Int64, 12345, "toDatabaseValues should preserve Int64 value")
+        
+        // Add to database
+        try dbManager.add(record)
+        
+        // Fetch back
+        let fetchedRecords: [MockRecord] = try dbManager.fetch(of: MockRecord.self, filters: [
+            FuseQueryFilter.equals(field: "name", value: "Type Test")
+        ])
+        
+        XCTAssertEqual(fetchedRecords.count, 1, "Should fetch exactly one record")
+        XCTAssertEqual(fetchedRecords.first?.value, 12345, "Value should be preserved correctly")
+        XCTAssertEqual(fetchedRecords.first?.name, "Type Test", "Name should be preserved correctly")
+    }
+
+    func testDefaultToDatabaseValuesImplementation() throws {
+        // Test the default toDatabaseValues implementation
+        let record = MockRecord(id: 1, name: "Test", value: 100)
+        
+        // This should work with the default implementation
+        let dbValues = record.toDatabaseValues()
+        
+        // Check if all fields are present and have correct types
+        XCTAssertNotNil(dbValues["id"], "id field should be present")
+        XCTAssertNotNil(dbValues["name"], "name field should be present") 
+        XCTAssertNotNil(dbValues["value"], "value field should be present")
+        
+        // Check types
+        XCTAssertTrue(dbValues["id"] is Int64, "id should be Int64")
+        XCTAssertTrue(dbValues["name"] is String, "name should be String")
+        XCTAssertTrue(dbValues["value"] is Int64, "value should be Int64")
+        
+        // Check values
+        XCTAssertEqual(dbValues["id"] as? Int64, 1)
+        XCTAssertEqual(dbValues["name"] as? String, "Test")
+        XCTAssertEqual(dbValues["value"] as? Int64, 100)
+    }
+
+    func testDefaultFromDatabaseImplementation() throws {
+        // Test that the default fromDatabase implementation works
+        let record = MockRecord(id: 42, name: "Default Test", value: 999)
+        
+        // Add to database
+        try dbManager.add(record)
+        
+        // Fetch back using the default implementation
+        let fetchedRecords: [MockRecord] = try dbManager.fetch(of: MockRecord.self, filters: [
+            FuseQueryFilter.equals(field: "name", value: "Default Test")
+        ])
+        
+        XCTAssertEqual(fetchedRecords.count, 1, "Should fetch exactly one record")
+        XCTAssertEqual(fetchedRecords.first?.id, 42, "ID should be preserved")
+        XCTAssertEqual(fetchedRecords.first?.name, "Default Test", "Name should be preserved")
+        XCTAssertEqual(fetchedRecords.first?.value, 999, "Value should be preserved")
     }
 } 

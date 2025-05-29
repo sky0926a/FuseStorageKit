@@ -67,7 +67,7 @@ let package = Package(
     ),
     .testTarget(
       name: "FuseStorageKitTests",
-      dependencies: ["FuseStorageCore"],
+      dependencies: ["FuseStorageSQLCipher"],
       path: "Tests/FuseStorageKitTests"
     ),
   ]

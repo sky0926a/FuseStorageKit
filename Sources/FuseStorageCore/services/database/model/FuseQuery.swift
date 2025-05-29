@@ -1,5 +1,4 @@
 import Foundation
-import GRDB
 
 /// Defines the available comparison operators for database queries
 public enum FuseQueryOperator {

@@ -6,7 +6,8 @@
 //
 
 import XCTest
-@testable import FuseStorageKit
+@testable import FuseStorageCore
+@testable import FuseStorageSQLCipher
 
 // MARK: - Memory Mock Backend
 class MemoryKeychainStore: FuseKeychainStore {

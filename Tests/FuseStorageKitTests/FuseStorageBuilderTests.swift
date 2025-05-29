@@ -6,12 +6,14 @@
 //
 
 import XCTest
-@testable import FuseStorageKit
+@testable import FuseStorageSQLCipher
 
 final class FuseStorageBuilderTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
+        // Ensure SQLCipher is initialized for tests
+        FuseStorageSQLCipher.ensureInitialized()
     }
 
     override func tearDown() {

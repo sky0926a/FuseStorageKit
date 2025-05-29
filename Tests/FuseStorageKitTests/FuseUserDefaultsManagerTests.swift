@@ -6,7 +6,7 @@
 //
 
 import XCTest
-@testable import FuseStorageKit
+@testable import FuseStorageSQLCipher
 import Foundation
 
 final class FuseUserDefaultsManagerTests: XCTestCase {

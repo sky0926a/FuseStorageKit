@@ -1,5 +1,4 @@
 import Foundation
-import GRDB
 
 /// Defines the available options for table creation
 public struct FuseTableOptions: OptionSet {

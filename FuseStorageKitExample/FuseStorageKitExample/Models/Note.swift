@@ -30,7 +30,7 @@ struct Note: FuseDatabaseRecord, Identifiable {
     // 因此這些屬性會自動對應到資料庫中的欄位
     // 但我們需要一些常量用於查詢
     
-    static let databaseTableName = "notes"
+    static var databaseTableName: String { return "notes" }
     
     // 欄位名稱定義，方便在代碼中使用
     enum Field {

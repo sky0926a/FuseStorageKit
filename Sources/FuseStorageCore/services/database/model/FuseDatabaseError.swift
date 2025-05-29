@@ -24,4 +24,16 @@ public enum FuseDatabaseError: Error {
     /// This error occurs when trying to open an encrypted database without
     /// providing the required passphrase or when the passphrase is empty.
     case missingPassphrase
+    
+    /// Indicates that no database factory has been injected
+    /// 
+    /// This error occurs when trying to create a database connection without
+    /// having a concrete database implementation available (e.g., GRDB).
+    case noFactoryInjected
+    
+    /// Indicates that the provided row data is invalid or incompatible
+    /// 
+    /// This error occurs when trying to convert database row data that doesn't
+    /// match the expected format or contains invalid values.
+    case invalidRowData
 }

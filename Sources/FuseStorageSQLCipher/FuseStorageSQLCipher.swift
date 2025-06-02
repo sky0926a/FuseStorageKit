@@ -2,24 +2,24 @@ import Foundation
 @_exported import FuseStorageCore
 import GRDB
 
-/// Global function to ensure FuseStorageSQLCipher is initialized
-/// This function can be called from anywhere to guarantee initialization
-public func ensureFuseStorageSQLCipherInitialized() {
-    FuseStorageSQLCipher.ensureInitialized()
-}
-
 /// This variable triggers module initialization as soon as the module is loaded
 /// The underscore prefix indicates it's an internal implementation detail
-public let _fuseStorageSQLCipherModuleInitialized: Bool = {
+private let _fuseStorageSQLCipherModuleInitialized: Bool = {
+    // Register the module for automatic initialization
+    FuseStorageModuleRegistry.registerModule(FuseStorageSQLCipher.self)
+    // Also initialize immediately for backward compatibility
     FuseStorageSQLCipher.initialize()
     return true
 }()
 
 /// FuseStorageSQLCipher module entry point
 /// This module provides SQLCipher-based database implementations for FuseStorageCore
-public struct FuseStorageSQLCipher {
+public struct FuseStorageSQLCipher: FuseStorageModule {
     /// Returns the version of the FuseStorageSQLCipher module
     public static let version = "1.0.0"
+    
+    /// Module name for registration
+    public static let moduleName = "FuseStorageSQLCipher"
     
     /// Thread-safe initialization flag
     private static var isInitialized = false
@@ -36,13 +36,14 @@ public struct FuseStorageSQLCipher {
         }
         
         // Register the GRDB factory as the default implementation
-        FuseDatabaseFactoryRegistry.setDefaultFactory(GRDBSQLCipherDatabaseFactory())
+        FuseStorageModuleRegistry.setDefaultDatabaseFactory(GRDBSQLCipherDatabaseFactory())
         isInitialized = true
         print("FuseStorageSQLCipher module initialized with GRDB factory")
     }
     
     /// Ensures that the module is initialized
     /// This is a safe method that can be called from anywhere to guarantee initialization
+    /// Note: This method is maintained for backward compatibility
     public static func ensureInitialized() {
         _ = _fuseStorageSQLCipherModuleInitialized // This ensures initialize() is called
     }
@@ -52,13 +53,6 @@ public struct FuseStorageSQLCipher {
         initializationLock.lock()
         defer { initializationLock.unlock() }
         return isInitialized
-    }
-}
-
-/// Helper class to make static methods available to Objective-C runtime
-@objc public class FuseStorageSQLCipherHelper: NSObject {
-    @objc public static func ensureInitialized() {
-        FuseStorageSQLCipher.ensureInitialized()
     }
 }
 

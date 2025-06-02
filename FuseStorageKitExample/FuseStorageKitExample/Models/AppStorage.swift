@@ -1,5 +1,5 @@
 import Foundation
-import FuseStorageKit
+import FuseStorageSQLCipher
 import UIKit
 
 class AppStorage {

@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		BFDFECB42DCE589C00435320 /* FuseStorageKit in Frameworks */ = {isa = PBXBuildFile; productRef = C5A6B0012DFB87DE00F5AF37 /* FuseStorageKit */; };
+		BF93C3B32DE8588A000EBCCC /* FuseStorageKitSQLCipher in Frameworks */ = {isa = PBXBuildFile; productRef = BF93C3B22DE8588A000EBCCC /* FuseStorageKitSQLCipher */; };
 		BFDFECB52DCE589C00435320 /* FuseStorageKit in Frameworks */ = {isa = PBXBuildFile; productRef = C5A6B0032DFB882F00F5AF37 /* FuseStorageKit */; };
 		BFDFECB62DCE589C00435320 /* FuseStorageKit in Frameworks */ = {isa = PBXBuildFile; productRef = C5A6B0042DFB883500F5AF37 /* FuseStorageKit */; };
 /* End PBXBuildFile section */
@@ -58,7 +58,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				BFDFECB42DCE589C00435320 /* FuseStorageKit in Frameworks */,
+				BF93C3B32DE8588A000EBCCC /* FuseStorageKitSQLCipher in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -122,6 +122,7 @@
 			name = FuseStorageKitExample;
 			packageProductDependencies = (
 				C5A6B0012DFB87DE00F5AF37 /* FuseStorageKit */,
+				BF93C3B22DE8588A000EBCCC /* FuseStorageKitSQLCipher */,
 			);
 			productName = FuseStorageKitExample;
 			productReference = BF0DEA8E2DCE0161008D981F /* FuseStorageKitExample.app */;
@@ -208,7 +209,7 @@
 			mainGroup = BF0DEA852DCE0161008D981F;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				C5A6B0002DFB87DE00F5AF37 /* XCLocalSwiftPackageReference ".." */,
+				BF93C3B12DE8588A000EBCCC /* XCLocalSwiftPackageReference "../../FuseStorageKit" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = BF0DEA8F2DCE0161008D981F /* Products */;
@@ -583,13 +584,17 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		C5A6B0002DFB87DE00F5AF37 /* XCLocalSwiftPackageReference ".." */ = {
+		BF93C3B12DE8588A000EBCCC /* XCLocalSwiftPackageReference "../../FuseStorageKit" */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = ..;
+			relativePath = ../../FuseStorageKit;
 		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		BF93C3B22DE8588A000EBCCC /* FuseStorageKitSQLCipher */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = FuseStorageKitSQLCipher;
+		};
 		C5A6B0012DFB87DE00F5AF37 /* FuseStorageKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = FuseStorageKit;

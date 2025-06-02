@@ -1,5 +1,5 @@
 import Foundation
-import FuseStorageKit
+import FuseStorageSQLCipher
 
 // 實現 FuseDatabaseRecord 協議
 struct Note: FuseDatabaseRecord, Identifiable {

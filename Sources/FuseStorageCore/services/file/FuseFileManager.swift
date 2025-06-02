@@ -1,4 +1,7 @@
 import Foundation
+#if os(macOS)
+import AppKit
+#endif
 
 /// Implementation of FuseFileManageable that manages files in configurable system directories
 /// 

@@ -10,47 +10,37 @@ public final class FuseDatabaseManager: FuseDatabaseManageable {
     /// - Parameters:
     ///   - path: The name of the SQLite database file. Defaults to "fuse.sqlite"
     ///   - encryptions: Optional encryption options for database encryption. If provided, SQLCipher will be used to encrypt the database.
-    ///   - factory: The database factory to use. Defaults to GRDBDatabaseFactory.
     /// - Throws: Database initialization errors if the file cannot be created or accessed
-    public init(path: String = "fuse.sqlite", encryptions: EncryptionOptions? = nil, factory: FuseDatabaseFactory = GRDBDatabaseFactory()) throws {
-        // Ensure SQLCipher module is initialized before proceeding
-        Self.ensureDatabaseFactoryAvailable()
+    public init(path: String = "fuse.sqlite", encryptions: EncryptionOptions? = nil) throws {
+        // Ensure database modules are initialized before proceeding
+        ensureDatabaseModulesInitialized()
         
-        self.factory = factory
+        // Get factory from the unified registry
+        self.factory = try FuseStorageModuleRegistry.getDefaultDatabaseFactory()
         
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         let url = docs.appendingPathComponent(path)
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
 
-        // Try to create database queue, this will trigger factory initialization if needed
-        do {
-            self.dbQueue = try factory.createDatabaseQueue(path: url.path, encryptionOptions: encryptions)
-        } catch FuseDatabaseError.noFactoryInjected {
-            // If no factory is injected, try once more after ensuring initialization
-            Self.ensureDatabaseFactoryAvailable()
-            self.dbQueue = try factory.createDatabaseQueue(path: url.path, encryptionOptions: encryptions)
-        }
+        // Create database queue
+        self.dbQueue = try self.factory.createDatabaseQueue(path: url.path, encryptionOptions: encryptions)
     }
 
     /// Initializes a database manager with an existing database queue.
     /// - Parameter dbQueue: An existing `FuseDatabaseQueueProtocol` instance
     public init(dbQueue: FuseDatabaseQueueProtocol) {
-        // Ensure SQLCipher module is initialized before proceeding
-        Self.ensureDatabaseFactoryAvailable()
+        // Ensure database modules are initialized before proceeding
+        ensureDatabaseModulesInitialized()
         
         self.dbQueue = dbQueue
-        self.factory = GRDBDatabaseFactory()
+        // Use a proxy factory that throws an error since we're not creating new queues
+        self.factory = ProxyDatabaseFactory()
     }
     
-    /// Ensures that a database factory is available for use
-    /// This method checks if a factory is registered and provides helpful error messages if not
-    private static func ensureDatabaseFactoryAvailable() {
-        // The initialization hooks should have been registered when FuseStorageSQLCipher was imported
-        // If no factory is available at this point, it means the module wasn't imported
-        if !FuseDatabaseFactoryRegistry.hasDefaultFactory() {
-            print("Warning: No database factory registered.")
-            print("Make sure to 'import FuseStorageSQLCipher' in your code to enable SQLCipher database support.")
-            print("The FuseStorageSQLCipher module provides GRDB-based SQLite database functionality.")
+    /// A proxy factory used when FuseDatabaseManager is initialized with an existing queue
+    private struct ProxyDatabaseFactory: FuseDatabaseFactory {
+        func createDatabaseQueue(path: String, encryptionOptions: EncryptionOptions?) throws -> FuseDatabaseQueueProtocol {
+            throw FuseDatabaseError.invalidRecordType // This should never be called
         }
     }
 
@@ -81,7 +71,7 @@ public final class FuseDatabaseManager: FuseDatabaseManageable {
             if definition.options.contains(.ifNotExists)  { options.append("ifNotExists") }
             if definition.options.contains(.temporary)    { options.append("temporary") }
             if definition.options.contains(.withoutRowID) { options.append("withoutRowID") }
-            if #available(iOS 15.4, *) {
+            if #available(iOS 15.4, macOS 12.4, *) {
                 if definition.options.contains(.strict) { options.append("strict") }
             }
             

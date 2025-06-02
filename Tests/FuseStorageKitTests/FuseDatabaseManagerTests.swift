@@ -48,8 +48,6 @@ class FuseDatabaseManagerTests: XCTestCase {
 
     override func setUpWithError() throws {
         try super.setUpWithError()
-        // Ensure SQLCipher is initialized for tests
-        FuseStorageSQLCipher.ensureInitialized()
         
         // Create a unique temporary database file name for each test
         tempDBPath = "test_\(UUID().uuidString).sqlite"

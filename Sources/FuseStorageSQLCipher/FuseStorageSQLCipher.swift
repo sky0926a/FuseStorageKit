@@ -158,6 +158,11 @@ public class MinimalRow: FuseDatabaseRow {
     public subscript(columnName: String) -> Any? {
         return row[columnName]
     }
+    
+    /// Get all available column names in this row
+    public var columnNames: [String] {
+        return Array(row.columnNames)
+    }
 }
 
 // MARK: - Statement Arguments Simplification
@@ -167,154 +172,5 @@ extension FuseStatementArguments {
     internal var grdbArguments: StatementArguments {
         let grdbArgs = self.toGRDBArguments() as! [Any]
         return StatementArguments(grdbArgs.map { $0 as? DatabaseValueConvertible })
-    }
-}
-
-// MARK: - Automatic GRDB Conformance for FuseDatabaseRecord
-
-/// Automatic conformance: Users only need to implement `FuseDatabaseRecord`
-/// The SDK automatically provides GRDB conformance since FuseDatabaseRecord already includes Codable
-extension FuseDatabaseRecord {
-    
-    /// Provide default toDatabaseValues implementation using reflection
-    public func toDatabaseValues() -> [String: FuseDatabaseValueConvertible?] {
-        var values: [String: FuseDatabaseValueConvertible?] = [:]
-        let mirror = Mirror(reflecting: self)
-        
-        for child in mirror.children {
-            guard let label = child.label else { continue }
-            
-            // Handle Optional values
-            if let optionalValue = child.value as? OptionalValueType {
-                values[label] = optionalValue.fuseDatabaseValueConvertible
-            } else if let value = child.value as? FuseDatabaseValueConvertible {
-                values[label] = value
-            } else {
-                // Fallback for unsupported types
-                values[label] = String(describing: child.value)
-            }
-        }
-        
-        return values
-    }
-    
-    /// Provide default fromDatabase implementation for Codable types
-    public static func fromDatabase(row: FuseDatabaseRow) throws -> Self {
-        if let minimalRow = row as? MinimalRow {
-            // For Codable types, we need to create a dictionary from the row
-            // and then decode it using JSONDecoder with proper type conversion
-            var data: [String: Any] = [:]
-            
-            // Detect boolean columns by examining common boolean field names
-            // This is a pragmatic approach since we can't easily do reflection on the type without an instance
-            let commonBooleanFieldNames = Set([
-                "hasAttachment", "isActive", "isCompleted", "isPublic", "isPrivate", "isEnabled", "isDisabled",
-                "isVisible", "isHidden", "isRequired", "isOptional", "isValid", "isInvalid", "isChecked",
-                "isSelected", "isDeleted", "isArchived", "isFavorite", "isBookmarked", "canEdit", "canDelete",
-                "canView", "canCreate", "canUpdate", "shouldSync", "shouldNotify", "willExpire"
-            ])
-            
-            for (columnName, dbValue) in minimalRow.row {
-                if let value = dbValue.storage.value {
-                    // Handle SQLite type conversions for JSON compatibility
-                    switch value {
-                    case let intValue as Int64:
-                        // Check if this column should be a boolean based on naming convention
-                        if commonBooleanFieldNames.contains(columnName) {
-                            data[columnName] = intValue != 0
-                        } else {
-                            // For integer values, keep as NSNumber to preserve type info
-                            data[columnName] = NSNumber(value: intValue)
-                        }
-                    case let intValue as Int:
-                        // Check if this column should be a boolean based on naming convention
-                        if commonBooleanFieldNames.contains(columnName) {
-                            data[columnName] = intValue != 0
-                        } else {
-                            data[columnName] = NSNumber(value: intValue)
-                        }
-                    case let doubleValue as Double:
-                        data[columnName] = NSNumber(value: doubleValue)
-                    case let boolValue as Bool:
-                        data[columnName] = boolValue
-                    case let stringValue as String:
-                        data[columnName] = stringValue
-                    case let dataValue as Data:
-                        // Convert Data to Base64 string for JSON
-                        data[columnName] = dataValue.base64EncodedString()
-                    default:
-                        data[columnName] = value
-                    }
-                } else {
-                    data[columnName] = NSNull()
-                }
-            }
-            
-            // Convert to JSON data and decode
-            let jsonData = try JSONSerialization.data(withJSONObject: data)
-            let decoder = JSONDecoder()
-            
-            // Configure date decoding strategy to handle database date strings
-            decoder.dateDecodingStrategy = .custom { decoder in
-                let container = try decoder.singleValueContainer()
-                
-                if let dateString = try? container.decode(String.self) {
-                    // Parse database date strings (GRDB format: "YYYY-MM-DD HH:MM:SS.SSS")
-                    let formatter = DateFormatter()
-                    formatter.dateFormat = "yyyy-MM-dd HH:mm:ss.SSS"
-                    formatter.timeZone = TimeZone(secondsFromGMT: 0)
-                    
-                    if let date = formatter.date(from: dateString) {
-                        return date
-                    }
-                    
-                    // Try without milliseconds
-                    formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-                    if let date = formatter.date(from: dateString) {
-                        return date
-                    }
-                    
-                    // Try date only
-                    formatter.dateFormat = "yyyy-MM-dd"
-                    if let date = formatter.date(from: dateString) {
-                        return date
-                    }
-                }
-                
-                // Fallback to timestamp if it's a number
-                if let timestamp = try? container.decode(Double.self) {
-                    return Date(timeIntervalSince1970: timestamp)
-                }
-                
-                throw DecodingError.dataCorrupted(
-                    DecodingError.Context(
-                        codingPath: decoder.codingPath,
-                        debugDescription: "Invalid date format"
-                    )
-                )
-            }
-            
-            return try decoder.decode(Self.self, from: jsonData)
-        } else {
-            throw FuseDatabaseError.invalidRowData
-        }
-    }
-}
-
-// MARK: - Helper Protocol for Optional Value Handling
-
-/// Helper protocol to handle Optional values in reflection
-private protocol OptionalValueType {
-    var fuseDatabaseValueConvertible: FuseDatabaseValueConvertible? { get }
-}
-
-extension Optional: OptionalValueType where Wrapped: FuseDatabaseValueConvertible {
-    var fuseDatabaseValueConvertible: FuseDatabaseValueConvertible? {
-        switch self {
-        case .none:
-            return nil
-        case .some(let wrapped):
-            return wrapped
-        }
     }
 }

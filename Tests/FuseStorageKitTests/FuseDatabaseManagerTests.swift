@@ -15,6 +15,19 @@ struct MockRecord: FuseDatabaseRecord, Equatable {
         self.name = name
         self.value = value
     }
+    
+    /// Table definition for this record type
+    var tableDefinition: FuseTableDefinition {
+        return FuseTableDefinition(
+            name: Self.databaseTableName,
+            columns: [
+                FuseColumnDefinition(name: "id", type: .integer, isPrimaryKey: true),
+                FuseColumnDefinition(name: "name", type: .text, isNotNull: true),
+                FuseColumnDefinition(name: "value", type: .integer, isNotNull: true)
+            ],
+            options: [.ifNotExists]
+        )
+    }
 }
 
 // Explicitly define databaseTableName outside the struct to ensure it overrides the default
@@ -282,6 +295,18 @@ class FuseDatabaseManagerTests: XCTestCase {
                 
                 var id: Int64
                 var secret_data: String
+                
+                /// Table definition for this record type
+                var tableDefinition: FuseTableDefinition {
+                    return FuseTableDefinition(
+                        name: Self.databaseTableName,
+                        columns: [
+                            FuseColumnDefinition(name: "id", type: .integer, isPrimaryKey: true),
+                            FuseColumnDefinition(name: "secret_data", type: .text, isNotNull: true)
+                        ],
+                        options: [.ifNotExists]
+                    )
+                }
             }
             
             let results: [MockSecretData] = try encryptedDBManager.read(selectQuery)
@@ -343,6 +368,18 @@ class FuseDatabaseManagerTests: XCTestCase {
                 
                 var id: Int64
                 var secret_data: String
+                
+                /// Table definition for this record type
+                var tableDefinition: FuseTableDefinition {
+                    return FuseTableDefinition(
+                        name: Self.databaseTableName,
+                        columns: [
+                            FuseColumnDefinition(name: "id", type: .integer, isPrimaryKey: true),
+                            FuseColumnDefinition(name: "secret_data", type: .text, isNotNull: true)
+                        ],
+                        options: [.ifNotExists]
+                    )
+                }
             }
             
             // 使用 FuseDatabaseManageable 提供的 fetch 方法
@@ -969,6 +1006,18 @@ class FuseDatabaseManagerTests: XCTestCase {
                 
                 var id: Int64
                 var data: String
+                
+                /// Table definition for this record type
+                var tableDefinition: FuseTableDefinition {
+                    return FuseTableDefinition(
+                        name: Self.databaseTableName,
+                        columns: [
+                            FuseColumnDefinition(name: "id", type: .integer, isPrimaryKey: true),
+                            FuseColumnDefinition(name: "data", type: .text, isNotNull: true)
+                        ],
+                        options: [.ifNotExists]
+                    )
+                }
             }
             
             let records: [TestRecord] = try reopenedDBManager.fetch(of: TestRecord.self)
@@ -1070,6 +1119,22 @@ class FuseDatabaseManagerTests: XCTestCase {
                 self.hasAttachment = hasAttachment
                 self.attachmentPath = attachmentPath
             }
+            
+            /// Table definition for this record type
+            var tableDefinition: FuseTableDefinition {
+                return FuseTableDefinition(
+                    name: Self.databaseTableName,
+                    columns: [
+                        FuseColumnDefinition(name: "id", type: .text, isPrimaryKey: true, isNotNull: true),
+                        FuseColumnDefinition(name: "title", type: .text, isNotNull: true),
+                        FuseColumnDefinition(name: "content", type: .text, isNotNull: true),
+                        FuseColumnDefinition(name: "createdAt", type: .date, isNotNull: true),
+                        FuseColumnDefinition(name: "hasAttachment", type: .boolean, isNotNull: true),
+                        FuseColumnDefinition(name: "attachmentPath", type: .text)
+                    ],
+                    options: [.ifNotExists]
+                )
+            }
         }
         
         // Create table for NoteTestRecord
@@ -1143,6 +1208,18 @@ class FuseDatabaseManagerTests: XCTestCase {
                 self.id = id
                 self.testDate = testDate
             }
+            
+            /// Table definition for this record type
+            var tableDefinition: FuseTableDefinition {
+                return FuseTableDefinition(
+                    name: Self.databaseTableName,
+                    columns: [
+                        FuseColumnDefinition(name: "id", type: .text, isPrimaryKey: true, isNotNull: true),
+                        FuseColumnDefinition(name: "testDate", type: .date, isNotNull: true)
+                    ],
+                    options: [.ifNotExists]
+                )
+            }
         }
         
         // Create table
@@ -1213,6 +1290,21 @@ class FuseDatabaseManagerTests: XCTestCase {
                 self.createdAt = createdAt
                 self.hasAttachment = hasAttachment
                 self.attachmentPath = attachmentPath
+            }
+            
+            /// Table definition for this record type
+            var tableDefinition: FuseTableDefinition {
+                return FuseTableDefinition(
+                    name: Self.databaseTableName,
+                    columns: [
+                        FuseColumnDefinition(name: "id", type: .text, isPrimaryKey: true, isNotNull: true),
+                        FuseColumnDefinition(name: "title", type: .text, isNotNull: true),
+                        FuseColumnDefinition(name: "content", type: .text, isNotNull: true),
+                        FuseColumnDefinition(name: "createdAt", type: .date, isNotNull: true),
+                        FuseColumnDefinition(name: "hasAttachment", type: .boolean, isNotNull: true, defaultValue: "0"),
+                        FuseColumnDefinition(name: "attachmentPath", type: .text)
+                    ]
+                )
             }
         }
         
@@ -1294,6 +1386,18 @@ class FuseDatabaseManagerTests: XCTestCase {
             init(id: String = UUID().uuidString, createdAt: Date = Date()) {
                 self.id = id
                 self.createdAt = createdAt
+            }
+            
+            /// Table definition for this record type
+            var tableDefinition: FuseTableDefinition {
+                return FuseTableDefinition(
+                    name: Self.databaseTableName,
+                    columns: [
+                        FuseColumnDefinition(name: "id", type: .text, isPrimaryKey: true, isNotNull: true),
+                        FuseColumnDefinition(name: "createdAt", type: .date, isNotNull: true)
+                    ],
+                    options: [.ifNotExists]
+                )
             }
         }
         
@@ -1401,6 +1505,22 @@ class FuseDatabaseManagerTests: XCTestCase {
                 self.createdAt = createdAt
                 self.hasAttachment = hasAttachment
                 self.attachmentPath = attachmentPath
+            }
+            
+            /// Table definition for this record type
+            var tableDefinition: FuseTableDefinition {
+                return FuseTableDefinition(
+                    name: Self.databaseTableName,
+                    columns: [
+                        FuseColumnDefinition(name: "id", type: .text, isPrimaryKey: true, isNotNull: true),
+                        FuseColumnDefinition(name: "title", type: .text, isNotNull: true),
+                        FuseColumnDefinition(name: "content", type: .text, isNotNull: true),
+                        FuseColumnDefinition(name: "createdAt", type: .date, isNotNull: true),
+                        FuseColumnDefinition(name: "hasAttachment", type: .boolean, isNotNull: true),
+                        FuseColumnDefinition(name: "attachmentPath", type: .text)
+                    ],
+                    options: [.ifNotExists]
+                )
             }
         }
         

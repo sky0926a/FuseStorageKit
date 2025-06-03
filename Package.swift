@@ -36,11 +36,7 @@ let package = Package(
       dependencies: [
         .product(name: "FirebaseFirestore", package: "firebase-ios-sdk"),
       ],
-      path: "Sources/FuseStorageCore",
-      swiftSettings: [
-//        .define("USE_GRDB"),
-//        .define("SQLITE_HAS_CODEC"),
-      ]
+      path: "Sources/FuseStorageCore"
     ),
 //    .target(
 //      name: "FuseStorage",
@@ -61,8 +57,8 @@ let package = Package(
       ],
       path: "Sources/FuseStorageSQLCipher",
       swiftSettings: [
-        .define("USE_GRDB"),
-        .define("SQLITE_HAS_CODEC"),
+//        .define("USE_GRDB"),
+//        .define("SQLITE_HAS_CODEC"),
       ]
     ),
     .testTarget(

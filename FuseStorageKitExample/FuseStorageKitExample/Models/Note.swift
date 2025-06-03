@@ -27,8 +27,12 @@ struct Note: FuseDatabaseRecord {
         self.attachmentPath = attachmentPath
     }
     
-    
     static var databaseTableName: String { return "notes" }
+    
+    /// Table definition for this record type, providing type information for proper encode/decode operations
+    var tableDefinition: FuseTableDefinition {
+        return Note.tableDefinition()
+    }
     
     // 欄位名稱定義，方便在代碼中使用
     enum Field {

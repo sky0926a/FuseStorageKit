@@ -2,26 +2,24 @@ import Foundation
 @_exported import FuseStorageCore
 import GRDB
 
-// MARK: - Minimal GRDB Integration
-
-/// Minimal GRDB factory that creates database queues
-public class GRDBSQLCipherDatabaseFactory: NSObject, FuseDatabaseFactory {
-    public override init() {
+// MARK: - Fsue GRDB Integration
+class FuseGRDBDatabaseFactory: NSObject, FuseDatabaseFactory {
+    override init() {
         super.init()
     }
     
-    public func createDatabaseQueue(path: String, encryptionOptions: EncryptionOptions?) throws -> FuseDatabaseQueueProtocol {
+    func createDatabaseQueue(path: String, encryptionOptions: EncryptionOptions?) throws -> FuseDatabaseQueueProtocol {
         var configuration = Configuration()
-        if let encryptionOptions = encryptionOptions {
+        if let encryptionOptions = encryptionOptions, !encryptionOptions.passphrase.isEmpty {
             configuration.prepareDatabase { db in
-                try self.applyEncryptionOptions(encryptionOptions, to: db)
+                try Self.applyEncryptionOptions(encryptionOptions, to: db)
             }
         }
         let grdbQueue = try DatabaseQueue(path: path, configuration: configuration)
-        return MinimalGRDBQueue(queue: grdbQueue)
+        return FuseGRDBDatabaseQueue(queue: grdbQueue)
     }
     
-    private func applyEncryptionOptions(_ options: EncryptionOptions, to db: Database) throws {
+    private static func applyEncryptionOptions(_ options: EncryptionOptions, to db: Database) throws {
         guard !options.passphrase.isEmpty else {
             throw FuseDatabaseError.missingPassphrase
         }
@@ -47,44 +45,44 @@ public class GRDBSQLCipherDatabaseFactory: NSObject, FuseDatabaseFactory {
 }
 
 /// Minimal queue that exposes GRDB with minimal overhead
-public class MinimalGRDBQueue: FuseDatabaseQueueProtocol {
+class FuseGRDBDatabaseQueue: FuseDatabaseQueueProtocol {
     internal let queue: DatabaseQueue
     
-    public init(queue: DatabaseQueue) {
+    init(queue: DatabaseQueue) {
         self.queue = queue
     }
     
-    public func read<T>(_ block: @escaping (FuseDatabaseConnection) throws -> T) throws -> T {
+    func read<T>(_ block: @escaping (FuseDatabaseConnection) throws -> T) throws -> T {
         return try queue.read { database in
-            return try block(MinimalGRDBConnection(database: database))
+            return try block(FuseGRDBConnection(database: database))
         }
     }
     
-    public func write<T>(_ block: @escaping (FuseDatabaseConnection) throws -> T) throws -> T {
+    func write<T>(_ block: @escaping (FuseDatabaseConnection) throws -> T) throws -> T {
         return try queue.write { database in
-            return try block(MinimalGRDBConnection(database: database))
+            return try block(FuseGRDBConnection(database: database))
         }
     }
 }
 
 /// Minimal connection that directly uses GRDB
-public class MinimalGRDBConnection: FuseDatabaseConnection {
+class FuseGRDBConnection: FuseDatabaseConnection {
     internal let database: Database
     
-    public init(database: Database) {
+    init(database: Database) {
         self.database = database
     }
     
-    public func execute(sql: String, arguments: FuseStatementArguments) throws {
+    func execute(sql: String, arguments: FuseStatementArguments) throws {
         let grdbArgs = StatementArguments((arguments.toGRDBArguments() as! [Any]).map { $0 as? DatabaseValueConvertible })
         try database.execute(sql: sql, arguments: grdbArgs)
     }
     
-    public func tableExists(_ tableName: String) throws -> Bool {
+    func tableExists(_ tableName: String) throws -> Bool {
         return try database.tableExists(tableName)
     }
     
-    public func create(table: String, options: [String], body: (FuseTableBuilder) throws -> Void) throws {
+    func create(table: String, options: [String], body: (FuseTableBuilder) throws -> Void) throws {
         var grdbOptions: TableOptions = []
         options.forEach { option in
             switch option {
@@ -97,47 +95,33 @@ public class MinimalGRDBConnection: FuseDatabaseConnection {
         }
         
         try database.create(table: table, options: grdbOptions) { tableDefinition in
-            try body(MinimalTableBuilder(definition: tableDefinition))
+            try body(FuseGRDBTableBuilder(definition: tableDefinition))
         }
     }
     
-    public func fetchAll<T: FuseFetchableRecord>(_ type: T.Type, sql: String, arguments: FuseStatementArguments) throws -> [T] {
+    func fetchAll<T: FuseFetchableRecord>(_ type: T.Type, sql: String, arguments: FuseStatementArguments) throws -> [T] {
         return try type.fetchAll(self, sql: sql, arguments: arguments)
     }
     
-    public func fetchRows(sql: String, arguments: FuseStatementArguments) throws -> [FuseDatabaseRow] {
+    func fetchRows(sql: String, arguments: FuseStatementArguments) throws -> [FuseDatabaseRow] {
         let grdbArgs = StatementArguments((arguments.toGRDBArguments() as! [Any]).map { $0 as? DatabaseValueConvertible })
         let rows = try Row.fetchAll(database, sql: sql, arguments: grdbArgs)
-        return rows.map { MinimalRow(row: $0) }
+        return rows.map { FuseGRDBDatabaseRow(row: $0) }
     }
 }
 
-/// Minimal table builder
-public class MinimalTableBuilder: FuseTableBuilder {
+/// Fuse GRDB table builder
+class FuseGRDBTableBuilder: FuseTableBuilder {
     private let definition: TableDefinition
     
-    public init(definition: TableDefinition) {
+    init(definition: TableDefinition) {
         self.definition = definition
     }
     
-    public func column(_ name: String, _ type: String, isPrimaryKey: Bool = false, isNotNull: Bool = false, isUnique: Bool = false, defaultValue: FuseDatabaseValueConvertible? = nil) throws {
-        let columnType: Database.ColumnType = {
-            switch type.uppercased() {
-            case let t where t.contains("TEXT"): return .text
-            case let t where t.contains("INTEGER"): return .integer
-            case let t where t.contains("REAL"): return .real
-            case let t where t.contains("DOUBLE"): return .double
-            case let t where t.contains("NUMERIC"): return .numeric
-            case let t where t.contains("BOOLEAN"): return .boolean
-            case let t where t.contains("DATE"): return .date
-            case let t where t.contains("DATETIME"): return .datetime
-            case let t where t.contains("BLOB"): return .blob
-            case let t where t.contains("ANY"): return .any
-            default: return .text
-            }
-        }()
+    func column(_ name: String, _ type: String, isPrimaryKey: Bool = false, isNotNull: Bool = false, isUnique: Bool = false, defaultValue: FuseDatabaseValueConvertible? = nil) throws {
+        let columnType = FuseColumnType.sqlType(type)
         
-        var column = definition.column(name, columnType)
+        var column = definition.column(name, columnType.sqlType)
         if isPrimaryKey { column = column.primaryKey() }
         if isNotNull { column = column.notNull() }
         if isUnique { column = column.unique() }
@@ -147,20 +131,20 @@ public class MinimalTableBuilder: FuseTableBuilder {
     }
 }
 
-/// Minimal row wrapper
-public class MinimalRow: FuseDatabaseRow {
+/// Fuse GRDB row wrapper
+class FuseGRDBDatabaseRow: FuseDatabaseRow {
     internal let row: Row
     
-    public init(row: Row) {
+    init(row: Row) {
         self.row = row
     }
     
-    public subscript(columnName: String) -> Any? {
+    subscript(columnName: String) -> Any? {
         return row[columnName]
     }
     
     /// Get all available column names in this row
-    public var columnNames: [String] {
+    var columnNames: [String] {
         return Array(row.columnNames)
     }
 }
@@ -169,8 +153,24 @@ public class MinimalRow: FuseDatabaseRow {
 
 extension FuseStatementArguments {
     /// Access to values for direct conversion to GRDB
-    internal var grdbArguments: StatementArguments {
+    var grdbArguments: StatementArguments {
         let grdbArgs = self.toGRDBArguments() as! [Any]
         return StatementArguments(grdbArgs.map { $0 as? DatabaseValueConvertible })
+    }
+}
+
+extension FuseColumnType {
+    var sqlType: Database.ColumnType {
+        switch self {
+        case .text: return .text
+        case .integer: return .integer
+        case .real: return .real
+        case .double: return .double
+        case .numeric: return .numeric
+        case .boolean: return .boolean
+        case .date: return .date
+        case .blob: return .blob
+        case .any: return .any
+        }
     }
 }

@@ -78,7 +78,7 @@ public extension FuseDatabaseRecord {
         
         // Convert based on column type
         switch columnType {
-        case .text, .custom:
+        case .text:
             return String(describing: value)
         case .integer:
             if let intValue = value as? Int {
@@ -152,7 +152,7 @@ public extension FuseDatabaseRecord {
         
         // Convert based on column type and target type
         switch columnType {
-        case .text, .custom:
+        case .text:
             if let stringValue = dbValue as? String {
                 return stringValue
             }

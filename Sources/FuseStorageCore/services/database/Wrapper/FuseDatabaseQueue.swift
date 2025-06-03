@@ -165,7 +165,7 @@ class FuseDatabaseFactoryRegistry {
     }
     
     private func tryFactoryRegistration() {
-        if let factoryClass = NSClassFromString("FuseStorageSQLCipher.GRDBSQLCipherDatabaseFactory") as? NSObject.Type {
+        if let factoryClass = NSClassFromString("FuseStorageSQLCipher.FuseGRDBDatabaseFactory") as? NSObject.Type {
             // If the class exists, try to create an instance which should trigger registration
             if let factory = factoryClass.init() as? FuseDatabaseFactory {
                 setMainFactory(factory)

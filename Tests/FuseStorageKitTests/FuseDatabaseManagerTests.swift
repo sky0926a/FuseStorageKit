@@ -1083,4 +1083,445 @@ class FuseDatabaseManagerTests: XCTestCase {
         XCTAssertEqual(fetchedRecords.first?.name, "Default Test", "Name should be preserved")
         XCTAssertEqual(fetchedRecords.first?.value, 999, "Value should be preserved")
     }
+
+    func testDateDecodingIssue() throws {
+        // Create a test record that mimics the Note structure to reproduce the date decoding issue
+        struct NoteTestRecord: FuseDatabaseRecord, Codable {
+            static var _fuseidField: String = "id"
+            static var databaseTableName: String = "note_test_records"
+            
+            let id: String
+            let title: String
+            let content: String
+            let createdAt: Date
+            let hasAttachment: Bool
+            let attachmentPath: String?
+            
+            init(id: String = UUID().uuidString, title: String, content: String, createdAt: Date = Date(), hasAttachment: Bool = false, attachmentPath: String? = nil) {
+                self.id = id
+                self.title = title
+                self.content = content
+                self.createdAt = createdAt
+                self.hasAttachment = hasAttachment
+                self.attachmentPath = attachmentPath
+            }
+        }
+        
+        // Create table for NoteTestRecord
+        let noteTableDefinition = FuseTableDefinition(
+            name: NoteTestRecord.databaseTableName,
+            columns: [
+                FuseColumnDefinition(name: "id", type: .text, isPrimaryKey: true, isNotNull: true),
+                FuseColumnDefinition(name: "title", type: .text, isNotNull: true),
+                FuseColumnDefinition(name: "content", type: .text, isNotNull: true),
+                FuseColumnDefinition(name: "createdAt", type: .date, isNotNull: true),
+                FuseColumnDefinition(name: "hasAttachment", type: .boolean, isNotNull: true),
+                FuseColumnDefinition(name: "attachmentPath", type: .text)
+            ],
+            options: [.ifNotExists]
+        )
+        try dbManager.createTable(noteTableDefinition)
+        
+        // Create and add a test record with a specific date
+        let testDate = Date(timeIntervalSince1970: 1678886400) // March 15, 2023, 8:00:00 AM UTC
+        let testRecord = NoteTestRecord(
+            id: "test-note-1",
+            title: "Test Note",
+            content: "This is a test note with a date",
+            createdAt: testDate,
+            hasAttachment: false,
+            attachmentPath: nil
+        )
+        
+        print("📝 Adding record with date: \(testDate)")
+        print("   Timestamp: \(testDate.timeIntervalSince1970)")
+        
+        // This should use the default Codable implementation and might fail
+        try dbManager.add(testRecord)
+        print("✅ Record added successfully")
+        
+        // Try to fetch the record - this is where the "Cannot decode date" error should occur
+        print("🔍 Attempting to fetch records...")
+        let fetchedRecords: [NoteTestRecord] = try dbManager.fetch(of: NoteTestRecord.self)
+        
+        XCTAssertEqual(fetchedRecords.count, 1, "Should fetch one record")
+        
+        if let fetchedRecord = fetchedRecords.first {
+            print("📖 Successfully fetched record:")
+            print("   ID: \(fetchedRecord.id)")
+            print("   Title: \(fetchedRecord.title)")
+            print("   Created: \(fetchedRecord.createdAt)")
+            print("   Timestamp: \(fetchedRecord.createdAt.timeIntervalSince1970)")
+            
+            // Verify the date is preserved correctly
+            let timeDifference = abs(fetchedRecord.createdAt.timeIntervalSince1970 - testDate.timeIntervalSince1970)
+            XCTAssertLessThan(timeDifference, 1.0, "Date should be preserved with reasonable precision")
+            
+            XCTAssertEqual(fetchedRecord.id, testRecord.id)
+            XCTAssertEqual(fetchedRecord.title, testRecord.title)
+            XCTAssertEqual(fetchedRecord.content, testRecord.content)
+            XCTAssertEqual(fetchedRecord.hasAttachment, testRecord.hasAttachment)
+            XCTAssertEqual(fetchedRecord.attachmentPath, testRecord.attachmentPath)
+        }
+    }
+
+    func testSimpleDateHandling() throws {
+        // Very simple test record with just a date
+        struct SimpleDateRecord: FuseDatabaseRecord, Codable {
+            static var _fuseidField: String = "id"
+            static var databaseTableName: String = "simple_date_test"
+            
+            let id: String
+            let testDate: Date
+            
+            init(id: String = UUID().uuidString, testDate: Date = Date()) {
+                self.id = id
+                self.testDate = testDate
+            }
+        }
+        
+        // Create table
+        let tableDefinition = FuseTableDefinition(
+            name: SimpleDateRecord.databaseTableName,
+            columns: [
+                FuseColumnDefinition(name: "id", type: .text, isPrimaryKey: true, isNotNull: true),
+                FuseColumnDefinition(name: "testDate", type: .date, isNotNull: true)
+            ],
+            options: [.ifNotExists]
+        )
+        try dbManager.createTable(tableDefinition)
+        
+        // Test with a known date
+        let knownDate = Date(timeIntervalSince1970: 1678886400) // March 15, 2023
+        let record = SimpleDateRecord(id: "test1", testDate: knownDate)
+        
+        print("🧪 Testing simple date handling...")
+        print("   Original date: \(knownDate)")
+        print("   Timestamp: \(knownDate.timeIntervalSince1970)")
+        
+        // Add record (this tests toDatabaseValues)
+        try dbManager.add(record)
+        print("✅ Record added successfully")
+        
+        // Fetch record (this tests fromDatabase)
+        let fetchedRecords: [SimpleDateRecord] = try dbManager.fetch(of: SimpleDateRecord.self)
+        print("✅ Records fetched: \(fetchedRecords.count)")
+        
+        XCTAssertEqual(fetchedRecords.count, 1, "Should have exactly one record")
+        
+        if let fetchedRecord = fetchedRecords.first {
+            print("   Fetched date: \(fetchedRecord.testDate)")
+            print("   Fetched timestamp: \(fetchedRecord.testDate.timeIntervalSince1970)")
+            
+            let timeDiff = abs(fetchedRecord.testDate.timeIntervalSince1970 - knownDate.timeIntervalSince1970)
+            print("   Time difference: \(timeDiff) seconds")
+            
+            XCTAssertEqual(fetchedRecord.id, record.id, "ID should match")
+            XCTAssertLessThan(timeDiff, 1.0, "Date should be preserved within 1 second precision")
+        } else {
+            XCTFail("Should have fetched a record")
+        }
+    }
+
+    func testRealNoteModelDateHandling() throws {
+        // Replicate the exact Note model structure from the example app
+        struct TestNote: FuseDatabaseRecord, Identifiable, Codable {
+            static var _fuseidField: String = "id"
+            static var databaseTableName: String = "test_notes"
+            
+            var id: String
+            var title: String
+            var content: String
+            var createdAt: Date
+            var hasAttachment: Bool
+            var attachmentPath: String?
+            
+            init(id: String = UUID().uuidString, 
+                 title: String, 
+                 content: String, 
+                 createdAt: Date = Date(),
+                 hasAttachment: Bool = false, 
+                 attachmentPath: String? = nil) {
+                self.id = id
+                self.title = title
+                self.content = content
+                self.createdAt = createdAt
+                self.hasAttachment = hasAttachment
+                self.attachmentPath = attachmentPath
+            }
+        }
+        
+        // Create the exact table structure as the Note model
+        let noteTableDefinition = FuseTableDefinition(
+            name: TestNote.databaseTableName,
+            columns: [
+                FuseColumnDefinition(name: "id", type: .text, isPrimaryKey: true, isNotNull: true),
+                FuseColumnDefinition(name: "title", type: .text, isNotNull: true),
+                FuseColumnDefinition(name: "content", type: .text, isNotNull: true),
+                FuseColumnDefinition(name: "createdAt", type: .date, isNotNull: true),
+                FuseColumnDefinition(name: "hasAttachment", type: .boolean, isNotNull: true, defaultValue: "0"),
+                FuseColumnDefinition(name: "attachmentPath", type: .text)
+            ]
+        )
+        try dbManager.createTable(noteTableDefinition)
+        
+        // Create test data that mimics real app usage
+        let testDate = Date() // Use current date like the real app
+        let testNote = TestNote(
+            id: "test-note-real",
+            title: "真實測試筆記",
+            content: "這是一個測試筆記，用來重現日期解碼問題",
+            createdAt: testDate,
+            hasAttachment: false,
+            attachmentPath: nil
+        )
+        
+        print("\n🧪 Testing real Note model structure...")
+        print("   Note ID: \(testNote.id)")
+        print("   Created At: \(testNote.createdAt)")
+        print("   Timestamp: \(testNote.createdAt.timeIntervalSince1970)")
+        
+        // Step 1: Add the note (this tests toDatabaseValues)
+        print("\n📝 Adding note to database...")
+        try dbManager.add(testNote)
+        print("✅ Note added successfully")
+        
+        // Step 2: Fetch the note (this tests fromDatabase - where the error occurs)
+        print("\n🔍 Fetching notes from database...")
+        let fetchedNotes: [TestNote] = try dbManager.fetch(of: TestNote.self)
+        print("✅ Notes fetched successfully: \(fetchedNotes.count)")
+        
+        XCTAssertEqual(fetchedNotes.count, 1, "Should have exactly one note")
+        
+        if let fetchedNote = fetchedNotes.first {
+            print("\n📖 Fetched note details:")
+            print("   ID: \(fetchedNote.id)")
+            print("   Title: \(fetchedNote.title)")
+            print("   Content: \(fetchedNote.content)")
+            print("   Created At: \(fetchedNote.createdAt)")
+            print("   Has Attachment: \(fetchedNote.hasAttachment)")
+            print("   Attachment Path: \(fetchedNote.attachmentPath ?? "nil")")
+            
+            // Verify all fields
+            XCTAssertEqual(fetchedNote.id, testNote.id, "ID should match")
+            XCTAssertEqual(fetchedNote.title, testNote.title, "Title should match")
+            XCTAssertEqual(fetchedNote.content, testNote.content, "Content should match")
+            XCTAssertEqual(fetchedNote.hasAttachment, testNote.hasAttachment, "HasAttachment should match")
+            XCTAssertEqual(fetchedNote.attachmentPath, testNote.attachmentPath, "AttachmentPath should match")
+            
+            // Check date precision
+            let timeDiff = abs(fetchedNote.createdAt.timeIntervalSince1970 - testNote.createdAt.timeIntervalSince1970)
+            XCTAssertLessThan(timeDiff, 1.0, "Date should be preserved within 1 second precision")
+        } else {
+            XCTFail("Should have fetched a note")
+        }
+    }
+
+    func testDebugGRDBDateStorage() throws {
+        // Simple test record with just essential fields to isolate the problem
+        struct DebugRecord: FuseDatabaseRecord, Codable {
+            static var _fuseidField: String = "id"
+            static var databaseTableName: String = "debug_records"
+            
+            let id: String
+            let createdAt: Date
+            
+            init(id: String = UUID().uuidString, createdAt: Date = Date()) {
+                self.id = id
+                self.createdAt = createdAt
+            }
+        }
+        
+        // Create table
+        let tableDefinition = FuseTableDefinition(
+            name: DebugRecord.databaseTableName,
+            columns: [
+                FuseColumnDefinition(name: "id", type: .text, isPrimaryKey: true, isNotNull: true),
+                FuseColumnDefinition(name: "createdAt", type: .date, isNotNull: true)
+            ],
+            options: [.ifNotExists]
+        )
+        try dbManager.createTable(tableDefinition)
+        
+        // Test with a specific known date
+        let testDate = Date(timeIntervalSince1970: 1640995200) // Jan 1, 2022, 00:00:00 UTC
+        let record = DebugRecord(id: "debug-1", createdAt: testDate)
+        
+        print("\n🔍 === DEBUGGING GRDB DATE STORAGE ===")
+        print("Original record:")
+        print("  ID: \(record.id)")
+        print("  Date: \(record.createdAt)")
+        print("  Timestamp: \(record.createdAt.timeIntervalSince1970)")
+        
+        // Test toDatabaseValues first
+        let dbValues = record.toDatabaseValues()
+        print("\ntoDatabaseValues result:")
+        for (key, value) in dbValues {
+            print("  \(key): \(value ?? "nil") (type: \(type(of: value)))")
+        }
+        
+        // Add record to database
+        try dbManager.add(record)
+        print("\n✅ Record added to database")
+        
+        // Now let's manually inspect what's actually in the database
+        print("\n🔍 Manually inspecting database content...")
+        
+        // Use the low-level read method to see raw data
+        let rawRows = try dbManager.queue.read { connection in
+            return try connection.fetchRows(
+                sql: "SELECT id, createdAt FROM \(DebugRecord.databaseTableName)",
+                arguments: FuseStatementArguments([])
+            )
+        }
+        
+        print("Raw database rows: \(rawRows.count)")
+        for (index, row) in rawRows.enumerated() {
+            print("  Row \(index):")
+            print("    id: \(row["id"] ?? "nil")")
+            print("    createdAt: \(row["createdAt"] ?? "nil")")
+            
+            // If it's a GRDB row wrapper, inspect the underlying data
+            if let grdbRow = row as? GRDBRowWrapper {
+                let grdbRowValue = grdbRow.grdbRow
+                print("    GRDB row columns: \(grdbRowValue.columnNames)")
+                
+                for columnName in grdbRowValue.columnNames {
+                    let value = grdbRowValue[columnName]
+                    print("      \(columnName): \(value) (storage: \(value.storage))")
+                }
+            }
+        }
+        
+        // Now try to fetch using our high-level method
+        print("\n🔍 Attempting high-level fetch...")
+        do {
+            let fetchedRecords: [DebugRecord] = try dbManager.fetch(of: DebugRecord.self)
+            print("✅ Successfully fetched \(fetchedRecords.count) records")
+            
+            for record in fetchedRecords {
+                print("  Fetched record:")
+                print("    ID: \(record.id)")
+                print("    Date: \(record.createdAt)")
+                print("    Timestamp: \(record.createdAt.timeIntervalSince1970)")
+            }
+        } catch {
+            print("❌ High-level fetch failed: \(error)")
+            
+            // Let's see the detailed error
+            if let decodingError = error as? DecodingError {
+                switch decodingError {
+                case .dataCorrupted(let context):
+                    print("  Data corrupted: \(context.debugDescription)")
+                    print("  Coding path: \(context.codingPath)")
+                case .keyNotFound(let key, let context):
+                    print("  Key not found: \(key)")
+                    print("  Context: \(context.debugDescription)")
+                case .typeMismatch(let type, let context):
+                    print("  Type mismatch: expected \(type)")
+                    print("  Context: \(context.debugDescription)")
+                case .valueNotFound(let type, let context):
+                    print("  Value not found: expected \(type)")
+                    print("  Context: \(context.debugDescription)")
+                @unknown default:
+                    print("  Unknown decoding error: \(decodingError)")
+                }
+            }
+            
+            throw error
+        }
+    }
+
+    func testGRDBNativeCodableSupport() throws {
+        // Test record that uses GRDB's native Codable support directly
+        struct NativeCodableRecord: FuseDatabaseRecord, Codable, FetchableRecord, PersistableRecord {
+            static var _fuseidField: String = "id"
+            static var databaseTableName: String = "native_codable_test"
+            
+            let id: String
+            let title: String
+            let content: String
+            let createdAt: Date
+            let hasAttachment: Bool
+            let attachmentPath: String?
+            
+            init(id: String = UUID().uuidString, title: String, content: String, createdAt: Date = Date(), hasAttachment: Bool = false, attachmentPath: String? = nil) {
+                self.id = id
+                self.title = title
+                self.content = content
+                self.createdAt = createdAt
+                self.hasAttachment = hasAttachment
+                self.attachmentPath = attachmentPath
+            }
+        }
+        
+        // Create table
+        let tableDefinition = FuseTableDefinition(
+            name: NativeCodableRecord.databaseTableName,
+            columns: [
+                FuseColumnDefinition(name: "id", type: .text, isPrimaryKey: true, isNotNull: true),
+                FuseColumnDefinition(name: "title", type: .text, isNotNull: true),
+                FuseColumnDefinition(name: "content", type: .text, isNotNull: true),
+                FuseColumnDefinition(name: "createdAt", type: .date, isNotNull: true),
+                FuseColumnDefinition(name: "hasAttachment", type: .boolean, isNotNull: true),
+                FuseColumnDefinition(name: "attachmentPath", type: .text)
+            ],
+            options: [.ifNotExists]
+        )
+        try dbManager.createTable(tableDefinition)
+        
+        // Create test record
+        let testDate = Date(timeIntervalSince1970: 1678886400) // March 15, 2023
+        let testRecord = NativeCodableRecord(
+            id: "native-test-1",
+            title: "Native GRDB Test",
+            content: "Testing GRDB's native Codable support",
+            createdAt: testDate,
+            hasAttachment: true,
+            attachmentPath: "/path/to/attachment"
+        )
+        
+        print("\n🧪 Testing GRDB Native Codable Support...")
+        print("   Original record:")
+        print("     ID: \(testRecord.id)")
+        print("     Title: \(testRecord.title)")
+        print("     Created: \(testRecord.createdAt)")
+        print("     Timestamp: \(testRecord.createdAt.timeIntervalSince1970)")
+        print("     Has Attachment: \(testRecord.hasAttachment)")
+        print("     Attachment Path: \(testRecord.attachmentPath ?? "nil")")
+        
+        // Add record using our SDK
+        try dbManager.add(testRecord)
+        print("✅ Record added successfully")
+        
+        // Fetch record using our SDK (this should use GRDB's native decoding)
+        let fetchedRecords: [NativeCodableRecord] = try dbManager.fetch(of: NativeCodableRecord.self)
+        print("✅ Records fetched: \(fetchedRecords.count)")
+        
+        XCTAssertEqual(fetchedRecords.count, 1, "Should have exactly one record")
+        
+        if let fetchedRecord = fetchedRecords.first {
+            print("   Fetched record:")
+            print("     ID: \(fetchedRecord.id)")
+            print("     Title: \(fetchedRecord.title)")
+            print("     Content: \(fetchedRecord.content)")
+            print("     Created: \(fetchedRecord.createdAt)")
+            print("     Timestamp: \(fetchedRecord.createdAt.timeIntervalSince1970)")
+            print("     Has Attachment: \(fetchedRecord.hasAttachment)")
+            print("     Attachment Path: \(fetchedRecord.attachmentPath ?? "nil")")
+            
+            // Verify all fields
+            XCTAssertEqual(fetchedRecord.id, testRecord.id)
+            XCTAssertEqual(fetchedRecord.title, testRecord.title)
+            XCTAssertEqual(fetchedRecord.content, testRecord.content)
+            XCTAssertEqual(fetchedRecord.hasAttachment, testRecord.hasAttachment)
+            XCTAssertEqual(fetchedRecord.attachmentPath, testRecord.attachmentPath)
+            
+            // Verify date precision
+            let timeDiff = abs(fetchedRecord.createdAt.timeIntervalSince1970 - testRecord.createdAt.timeIntervalSince1970)
+            XCTAssertLessThan(timeDiff, 1.0, "Date should be preserved correctly with GRDB native support")
+        } else {
+            XCTFail("Should have fetched a record")
+        }
+    }
 } 

@@ -1,8 +1,9 @@
 import Foundation
 import FuseStorageSQLCipher
+import GRDB
 
-// 實現 FuseDatabaseRecord 協議
-struct Note: FuseDatabaseRecord, Identifiable {
+// 實現 FuseDatabaseRecord 協議，同時直接使用 GRDB 的原生 Codable 支持
+struct Note: FuseDatabaseRecord, Identifiable, Codable, FetchableRecord, PersistableRecord {
     static var _fuseidField: String = "id"
     
     var id: String
@@ -26,9 +27,8 @@ struct Note: FuseDatabaseRecord, Identifiable {
         self.attachmentPath = attachmentPath
     }
     
-    // FuseDatabaseRecord 協議已經繼承自 Codable, FetchableRecord, PersistableRecord
-    // 因此這些屬性會自動對應到資料庫中的欄位
-    // 但我們需要一些常量用於查詢
+    // 使用 GRDB 的原生 Codable 支持，不需要手動實作 fromDatabase 和 toDatabaseValues
+    // GRDB 會自動處理 Codable 類型的序列化和反序列化，包括 Date 類型
     
     static var databaseTableName: String { return "notes" }
     

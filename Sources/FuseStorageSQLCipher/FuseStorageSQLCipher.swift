@@ -240,8 +240,10 @@ public func convertFuseValueToGRDBValue(_ value: FuseDatabaseValueConvertible?) 
 // MARK: - GRDB Extensions for FuseDatabaseRecord
 
 /// Extension to provide GRDB-specific implementations for FuseDatabaseRecord
+/// For Codable types, we bridge GRDB's native support with our protocol
 public extension FuseDatabaseRecord where Self: Codable {
-    /// GRDB implementation of toDatabaseValues using reflection
+    
+    /// Default implementation that uses GRDB's reflection mechanism
     func toDatabaseValues() -> [String: FuseDatabaseValueConvertible?] {
         var values: [String: FuseDatabaseValueConvertible?] = [:]
         
@@ -249,13 +251,11 @@ public extension FuseDatabaseRecord where Self: Codable {
         for child in mirror.children {
             guard let label = child.label else { continue }
             
-            // Convert the value to FuseDatabaseValueConvertible
             if let convertibleValue = child.value as? FuseDatabaseValueConvertible {
                 values[label] = convertibleValue
             } else if let optionalValue = child.value as? any OptionalType {
                 values[label] = optionalValue.wrappedValue as? FuseDatabaseValueConvertible
             } else {
-                // Handle other types by converting to string as fallback
                 values[label] = String(describing: child.value)
             }
         }
@@ -263,49 +263,35 @@ public extension FuseDatabaseRecord where Self: Codable {
         return values
     }
     
-    /// GRDB implementation of fromDatabase using JSON decoding
+    /// Bridge implementation that works with GRDB's FetchableRecord
+    /// For types that implement both FuseDatabaseRecord and GRDB's FetchableRecord
     static func fromDatabase(row: FuseDatabaseRow) throws -> Self {
-        // Create a dictionary from the row data
-        var jsonDict: [String: Any] = [:]
-        
-        // Get all properties from the type using reflection on a default instance
-        let mirror = Mirror(reflecting: try createDefaultInstance())
-        for child in mirror.children {
-            guard let label = child.label else { continue }
+        if let grdbRow = row as? GRDBRowWrapper {
+            let grdbRowValue = grdbRow.grdbRow
             
-            if let value = row[label] {
-                // Convert values to JSON-compatible types
-                if let grdbRow = row as? GRDBRowWrapper {
-                    // Use the GRDB Row subscript to get DatabaseValue
-                    let grdbValue: DatabaseValue = grdbRow.grdbRow[label]
-                    jsonDict[label] = convertGRDBDatabaseValueToJSON(grdbValue)
-                } else {
-                    jsonDict[label] = value
-                }
+            #if DEBUG
+            print("🔍 Using GRDB FetchableRecord bridge for \(Self.self)")
+            #endif
+            
+            // If this type implements GRDB's FetchableRecord, use that implementation
+            if let fetchableType = Self.self as? any FetchableRecord.Type {
+                let instance = try fetchableType.init(row: grdbRowValue)
+                return instance as! Self
+            } else {
+                // This should not happen for properly configured types
+                throw FuseDatabaseError.invalidRecordType
             }
+            
+        } else {
+            throw FuseDatabaseError.invalidRowData
         }
-        
-        // Convert to JSON data and decode
-        let jsonData = try JSONSerialization.data(withJSONObject: jsonDict)
-        return try JSONDecoder().decode(Self.self, from: jsonData)
-    }
-    
-    /// Helper method to create a default instance for reflection
-    private static func createDefaultInstance() throws -> Self {
-        // Try to decode from empty JSON first (works if all properties are optional or have default values)
-        if let instance = try? JSONDecoder().decode(Self.self, from: Data("{}".utf8)) {
-            return instance
-        }
-        
-        // If that fails, try to create an instance with null values for all properties
-        // This is a more complex approach, but for now we'll use a simpler fallback
-        throw FuseDatabaseError.invalidRecordType
     }
 }
 
 /// Helper protocol to work with Optional types
 private protocol OptionalType {
     var wrappedValue: Any? { get }
+    static var wrappedType: Any.Type { get }
 }
 
 extension Optional: OptionalType {
@@ -315,31 +301,11 @@ extension Optional: OptionalType {
         case .some(let value): return value
         }
     }
+    
+    static var wrappedType: Any.Type {
+        return Wrapped.self
+    }
 }
 
-/// Helper function to convert GRDB DatabaseValue to JSON-compatible types
-private func convertGRDBDatabaseValueToJSON(_ value: DatabaseValue) -> Any? {
-    if value.isNull {
-        return nil
-    }
-    
-    // Try different types in order
-    if let stringValue = String.fromDatabaseValue(value) {
-        return stringValue
-    }
-    if let int64Value = Int64.fromDatabaseValue(value) {
-        return int64Value
-    }
-    if let doubleValue = Double.fromDatabaseValue(value) {
-        return doubleValue
-    }
-    if let boolValue = Bool.fromDatabaseValue(value) {
-        return boolValue
-    }
-    if let dataValue = Data.fromDatabaseValue(value) {
-        return dataValue
-    }
-    
-    // Fallback
-    return value.description
-} 
+// Note: Date already conforms to DatabaseValueConvertible in GRDB
+// This is all we need for complete GRDB Codable support 

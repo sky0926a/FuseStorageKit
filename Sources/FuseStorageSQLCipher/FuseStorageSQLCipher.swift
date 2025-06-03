@@ -172,12 +172,12 @@ extension FuseStatementArguments {
 
 // MARK: - Automatic GRDB Conformance for FuseDatabaseRecord
 
-/// Automatic conformance: Users only need to implement `FuseDatabaseRecord & Codable`
-/// The SDK automatically provides GRDB conformance
-extension FuseDatabaseRecord where Self: Codable {
+/// Automatic conformance: Users only need to implement `FuseDatabaseRecord`
+/// The SDK automatically provides GRDB conformance since FuseDatabaseRecord already includes Codable
+extension FuseDatabaseRecord {
     
     /// Provide default toDatabaseValues implementation using reflection
-    func toDatabaseValues() -> [String: FuseDatabaseValueConvertible?] {
+    public func toDatabaseValues() -> [String: FuseDatabaseValueConvertible?] {
         var values: [String: FuseDatabaseValueConvertible?] = [:]
         let mirror = Mirror(reflecting: self)
         
@@ -199,7 +199,7 @@ extension FuseDatabaseRecord where Self: Codable {
     }
     
     /// Provide default fromDatabase implementation for Codable types
-    static func fromDatabase(row: FuseDatabaseRow) throws -> Self {
+    public static func fromDatabase(row: FuseDatabaseRow) throws -> Self {
         if let minimalRow = row as? MinimalRow {
             // For Codable types, we need to create a dictionary from the row
             // and then decode it using JSONDecoder with proper type conversion

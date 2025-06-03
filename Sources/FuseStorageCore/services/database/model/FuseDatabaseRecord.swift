@@ -3,7 +3,7 @@ import Foundation
 /// A protocol that defines the requirements for database records in FuseStorageKit.
 /// This protocol combines Codable for JSON serialization, FuseFetchableRecord for reading from the database,
 /// and FusePersistableRecord for writing to the database.
-public protocol FuseDatabaseRecord: Codable, FuseFetchableRecord, FusePersistableRecord {
+public protocol FuseDatabaseRecord: Codable, Identifiable, FuseFetchableRecord, FusePersistableRecord {
     /// The unique identifier for the record in the database
     var _fuseid: FuseDatabaseValueConvertible { get }
     
@@ -33,19 +33,5 @@ public extension FuseDatabaseRecord {
     /// By default, it uses the lowercase name of the record type.
     static var databaseTableName: String {
         return String(describing: self).lowercased()
-    }
-    
-    /// Default implementation that delegates to the database factory
-    /// The actual implementation will be provided by the concrete database implementation (e.g., GRDB)
-    func toDatabaseValues() -> [String: FuseDatabaseValueConvertible?] {
-        // This will be overridden by the GRDB implementation through extensions
-        fatalError("toDatabaseValues() must be implemented by the database implementation")
-    }
-    
-    /// Default implementation that delegates to the database factory
-    /// The actual implementation will be provided by the concrete database implementation (e.g., GRDB)
-    static func fromDatabase(row: FuseDatabaseRow) throws -> Self {
-        // This will be overridden by the GRDB implementation through extensions
-        fatalError("fromDatabase() must be implemented by the database implementation")
     }
 }

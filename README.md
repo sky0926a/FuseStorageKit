@@ -209,7 +209,7 @@ Your data models must conform to the `FuseDatabaseRecord` protocol:
 import FuseStorageKit
 import Foundation // For UUID and Date
 
-struct Note: Codable, Identifiable, FuseDatabaseRecord {
+struct Note: FuseDatabaseRecord {
     var id: String
     var title: String
     var content: String

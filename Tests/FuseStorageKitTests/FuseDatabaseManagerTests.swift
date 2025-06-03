@@ -3,7 +3,7 @@ import XCTest
 import GRDB
 
 // Mock record type for testing - using the new simplified approach
-struct MockRecord: FuseDatabaseRecord, Codable, Equatable {
+struct MockRecord: FuseDatabaseRecord, Equatable {
     static var _fuseidField: String = "id"
 
     var id: Int64
@@ -276,7 +276,7 @@ class FuseDatabaseManagerTests: XCTestCase {
             )
             
             // 使用 MockSecretData 讀取結果
-            struct MockSecretData: FuseDatabaseRecord, Codable {
+            struct MockSecretData: FuseDatabaseRecord {
                 static var databaseTableName: String = "encrypted_test_table"
                 static var _fuseidField: String = "id"
                 
@@ -337,7 +337,7 @@ class FuseDatabaseManagerTests: XCTestCase {
             )
             
             // 再次定義用於讀取的結構
-            struct MockSecretData: FuseDatabaseRecord, Codable {
+            struct MockSecretData: FuseDatabaseRecord {
                 static var databaseTableName: String = "encrypted_test_table"
                 static var _fuseidField: String = "id"
                 
@@ -963,7 +963,7 @@ class FuseDatabaseManagerTests: XCTestCase {
             XCTAssertTrue(tableExists, "Table should exist in reopened encrypted database")
             
             // Verify data exists
-            struct TestRecord: FuseDatabaseRecord, Codable {
+            struct TestRecord: FuseDatabaseRecord {
                 static var databaseTableName: String = "test_table"
                 static var _fuseidField: String = "id"
                 
@@ -1051,7 +1051,7 @@ class FuseDatabaseManagerTests: XCTestCase {
 
     func testDateDecodingIssue() throws {
         // Create a test record that mimics the Note structure to reproduce the date decoding issue
-        struct NoteTestRecord: FuseDatabaseRecord, Codable {
+        struct NoteTestRecord: FuseDatabaseRecord {
             static var _fuseidField: String = "id"
             static var databaseTableName: String = "note_test_records"
             
@@ -1132,7 +1132,7 @@ class FuseDatabaseManagerTests: XCTestCase {
 
     func testSimpleDateHandling() throws {
         // Very simple test record with just a date
-        struct SimpleDateRecord: FuseDatabaseRecord, Codable {
+        struct SimpleDateRecord: FuseDatabaseRecord {
             static var _fuseidField: String = "id"
             static var databaseTableName: String = "simple_date_test"
             
@@ -1190,7 +1190,7 @@ class FuseDatabaseManagerTests: XCTestCase {
 
     func testRealNoteModelDateHandling() throws {
         // Replicate the exact Note model structure from the example app
-        struct TestNote: FuseDatabaseRecord, Identifiable, Codable {
+        struct TestNote: FuseDatabaseRecord {
             static var _fuseidField: String = "id"
             static var databaseTableName: String = "test_notes"
             
@@ -1284,7 +1284,7 @@ class FuseDatabaseManagerTests: XCTestCase {
 
     func testDebugGRDBDateStorage() throws {
         // Simple test record with just essential fields to isolate the problem
-        struct DebugRecord: FuseDatabaseRecord, Codable {
+        struct DebugRecord: FuseDatabaseRecord {
             static var _fuseidField: String = "id"
             static var databaseTableName: String = "debug_records"
             
@@ -1383,7 +1383,7 @@ class FuseDatabaseManagerTests: XCTestCase {
 
     func testGRDBNativeCodableSupport() throws {
         // Test record that uses GRDB's native Codable support directly
-        struct NativeCodableRecord: FuseDatabaseRecord, Codable, FetchableRecord, PersistableRecord {
+        struct NativeCodableRecord: FuseDatabaseRecord {
             static var _fuseidField: String = "id"
             static var databaseTableName: String = "native_codable_test"
             

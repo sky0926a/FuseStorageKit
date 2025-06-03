@@ -2,8 +2,8 @@ import XCTest
 @testable import FuseStorageSQLCipher
 import GRDB
 
-// Mock record type for testing
-struct MockRecord: FuseDatabaseRecord, FetchableRecord, PersistableRecord, Equatable {
+// Mock record type for testing - using the new simplified approach
+struct MockRecord: FuseDatabaseRecord, Codable, Equatable {
     static var _fuseidField: String = "id"
 
     var id: Int64
@@ -14,23 +14,6 @@ struct MockRecord: FuseDatabaseRecord, FetchableRecord, PersistableRecord, Equat
         self.id = id
         self.name = name
         self.value = value
-    }
-    
-    // MARK: - FuseDatabaseRecord implementation
-    func toDatabaseValues() -> [String: FuseDatabaseValueConvertible?] {
-        return [
-            "id": self.id,
-            "name": self.name,
-            "value": self.value
-        ]
-    }
-    
-    static func fromDatabase(row: FuseDatabaseRow) throws -> MockRecord {
-        return MockRecord(
-            id: row["id"] as? Int64 ?? 0,
-            name: row["name"] as? String ?? "",
-            value: row["value"] as? Int64 ?? 0
-        )
     }
 }
 
@@ -293,19 +276,12 @@ class FuseDatabaseManagerTests: XCTestCase {
             )
             
             // 使用 MockSecretData 讀取結果
-            struct MockSecretData: FuseDatabaseRecord {
+            struct MockSecretData: FuseDatabaseRecord, Codable {
                 static var databaseTableName: String = "encrypted_test_table"
                 static var _fuseidField: String = "id"
                 
                 var id: Int64
                 var secret_data: String
-                
-                static func fromDatabase(row: FuseDatabaseRow) throws -> MockSecretData {
-                    return MockSecretData(
-                        id: row["id"] as? Int64 ?? 0,
-                        secret_data: row["secret_data"] as? String ?? ""
-                    )
-                }
             }
             
             let results: [MockSecretData] = try encryptedDBManager.read(selectQuery)
@@ -361,19 +337,12 @@ class FuseDatabaseManagerTests: XCTestCase {
             )
             
             // 再次定義用於讀取的結構
-            struct MockSecretData: FuseDatabaseRecord {
+            struct MockSecretData: FuseDatabaseRecord, Codable {
                 static var databaseTableName: String = "encrypted_test_table"
                 static var _fuseidField: String = "id"
                 
                 var id: Int64
                 var secret_data: String
-                
-                static func fromDatabase(row: FuseDatabaseRow) throws -> MockSecretData {
-                    return MockSecretData(
-                        id: row["id"] as? Int64 ?? 0,
-                        secret_data: row["secret_data"] as? String ?? ""
-                    )
-                }
             }
             
             // 使用 FuseDatabaseManageable 提供的 fetch 方法
@@ -994,16 +963,12 @@ class FuseDatabaseManagerTests: XCTestCase {
             XCTAssertTrue(tableExists, "Table should exist in reopened encrypted database")
             
             // Verify data exists
-            struct TestRecord: FuseDatabaseRecord {
+            struct TestRecord: FuseDatabaseRecord, Codable {
                 static var databaseTableName: String = "test_table"
                 static var _fuseidField: String = "id"
                 
                 var id: Int64
                 var data: String
-                
-                static func fromDatabase(row: FuseDatabaseRow) throws -> TestRecord {
-                    return TestRecord(id: row["id"] as? Int64 ?? 0, data: row["data"] as? String ?? "")
-                }
             }
             
             let records: [TestRecord] = try reopenedDBManager.fetch(of: TestRecord.self)
@@ -1051,9 +1016,9 @@ class FuseDatabaseManagerTests: XCTestCase {
         let dbValues = record.toDatabaseValues()
         
         // Check if all fields are present and have correct types
-        XCTAssertNotNil(dbValues["id"], "id field should be present")
-        XCTAssertNotNil(dbValues["name"], "name field should be present") 
-        XCTAssertNotNil(dbValues["value"], "value field should be present")
+        XCTAssertNotNil(dbValues["id"] as Any?, "id field should be present")
+        XCTAssertNotNil(dbValues["name"] as Any?, "name field should be present") 
+        XCTAssertNotNil(dbValues["value"] as Any?, "value field should be present")
         
         // Check types
         XCTAssertTrue(dbValues["id"] is Int64, "id should be Int64")
@@ -1368,29 +1333,13 @@ class FuseDatabaseManagerTests: XCTestCase {
         print("\n🔍 Manually inspecting database content...")
         
         // Use the low-level read method to see raw data
-        let rawRows = try dbManager.queue.read { connection in
-            return try connection.fetchRows(
-                sql: "SELECT id, createdAt FROM \(DebugRecord.databaseTableName)",
-                arguments: FuseStatementArguments([])
-            )
-        }
+        let rawRows = try dbManager.debugFetchRows("SELECT id, createdAt FROM \(DebugRecord.databaseTableName)")
         
         print("Raw database rows: \(rawRows.count)")
         for (index, row) in rawRows.enumerated() {
             print("  Row \(index):")
             print("    id: \(row["id"] ?? "nil")")
             print("    createdAt: \(row["createdAt"] ?? "nil")")
-            
-            // If it's a GRDB row wrapper, inspect the underlying data
-            if let grdbRow = row as? GRDBRowWrapper {
-                let grdbRowValue = grdbRow.grdbRow
-                print("    GRDB row columns: \(grdbRowValue.columnNames)")
-                
-                for columnName in grdbRowValue.columnNames {
-                    let value = grdbRowValue[columnName]
-                    print("      \(columnName): \(value) (storage: \(value.storage))")
-                }
-            }
         }
         
         // Now try to fetch using our high-level method

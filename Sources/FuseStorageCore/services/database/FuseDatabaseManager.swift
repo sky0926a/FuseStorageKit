@@ -220,4 +220,17 @@ public final class FuseDatabaseManager: FuseDatabaseManageable {
             try db.execute(sql: sql, arguments: FuseStatementArguments(arguments))
         }
     }
+    
+    // MARK: - Debug/Testing Methods
+    
+    /// Executes a SELECT query and returns raw database rows for debugging/testing purposes.
+    /// - Parameter sql: The SQL query to execute
+    /// - Parameter arguments: The arguments to pass to the SQL query
+    /// - Returns: Array of raw database rows
+    /// - Throws: Database operation errors if the query fails
+    public func debugFetchRows(_ sql: String, arguments: [FuseDatabaseValueConvertible] = []) throws -> [FuseDatabaseRow] {
+        return try dbQueue.read { db in
+            try db.fetchRows(sql: sql, arguments: FuseStatementArguments(arguments))
+        }
+    }
 }

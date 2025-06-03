@@ -2,9 +2,9 @@ import Foundation
 @_exported import FuseStorageCore
 import GRDB
 
-// MARK: - GRDB Implementation
+// MARK: - Minimal GRDB Integration
 
-/// Concrete GRDB SQLCipher implementation of the database factory
+/// Minimal GRDB factory that creates database queues
 public class GRDBSQLCipherDatabaseFactory: NSObject, FuseDatabaseFactory {
     public override init() {
         super.init()
@@ -18,7 +18,7 @@ public class GRDBSQLCipherDatabaseFactory: NSObject, FuseDatabaseFactory {
             }
         }
         let grdbQueue = try DatabaseQueue(path: path, configuration: configuration)
-        return GRDBDatabaseQueueWrapper(databaseQueue: grdbQueue)
+        return MinimalGRDBQueue(queue: grdbQueue)
     }
     
     private func applyEncryptionOptions(_ options: EncryptionOptions, to db: Database) throws {
@@ -46,40 +46,38 @@ public class GRDBSQLCipherDatabaseFactory: NSObject, FuseDatabaseFactory {
     }
 }
 
-/// GRDB wrapper for DatabaseQueue
-public class GRDBDatabaseQueueWrapper: FuseDatabaseQueueProtocol {
-    private let databaseQueue: DatabaseQueue
+/// Minimal queue that exposes GRDB with minimal overhead
+public class MinimalGRDBQueue: FuseDatabaseQueueProtocol {
+    internal let queue: DatabaseQueue
     
-    public init(databaseQueue: DatabaseQueue) {
-        self.databaseQueue = databaseQueue
+    public init(queue: DatabaseQueue) {
+        self.queue = queue
     }
     
     public func read<T>(_ block: @escaping (FuseDatabaseConnection) throws -> T) throws -> T {
-        return try databaseQueue.read { database in
-            let wrapper = GRDBDatabaseConnectionWrapper(database: database)
-            return try block(wrapper)
+        return try queue.read { database in
+            return try block(MinimalGRDBConnection(database: database))
         }
     }
     
     public func write<T>(_ block: @escaping (FuseDatabaseConnection) throws -> T) throws -> T {
-        return try databaseQueue.write { database in
-            let wrapper = GRDBDatabaseConnectionWrapper(database: database)
-            return try block(wrapper)
+        return try queue.write { database in
+            return try block(MinimalGRDBConnection(database: database))
         }
     }
 }
 
-/// GRDB wrapper for Database connection
-public class GRDBDatabaseConnectionWrapper: FuseDatabaseConnection {
-    private let database: Database
+/// Minimal connection that directly uses GRDB
+public class MinimalGRDBConnection: FuseDatabaseConnection {
+    internal let database: Database
     
     public init(database: Database) {
         self.database = database
     }
     
     public func execute(sql: String, arguments: FuseStatementArguments) throws {
-        let grdbArguments = convertToGRDBArguments(arguments)
-        try database.execute(sql: sql, arguments: grdbArguments)
+        let grdbArgs = StatementArguments((arguments.toGRDBArguments() as! [Any]).map { $0 as? DatabaseValueConvertible })
+        try database.execute(sql: sql, arguments: grdbArgs)
     }
     
     public func tableExists(_ tableName: String) throws -> Bool {
@@ -88,67 +86,58 @@ public class GRDBDatabaseConnectionWrapper: FuseDatabaseConnection {
     
     public func create(table: String, options: [String], body: (FuseTableBuilder) throws -> Void) throws {
         var grdbOptions: TableOptions = []
-        
-        for option in options {
+        options.forEach { option in
             switch option {
             case "ifNotExists": grdbOptions.insert(.ifNotExists)
             case "temporary": grdbOptions.insert(.temporary)
             case "withoutRowID": grdbOptions.insert(.withoutRowID)
-            case "strict":
-                if #available(iOS 15.4, *) {
-                    grdbOptions.insert(.strict)
-                }
+            case "strict": if #available(iOS 15.4, *) { grdbOptions.insert(.strict) }
             default: break
             }
         }
         
         try database.create(table: table, options: grdbOptions) { tableDefinition in
-            let fuseTableBuilder = GRDBTableBuilderWrapper(tableDefinition: tableDefinition)
-            try body(fuseTableBuilder)
+            try body(MinimalTableBuilder(definition: tableDefinition))
         }
     }
     
     public func fetchAll<T: FuseFetchableRecord>(_ type: T.Type, sql: String, arguments: FuseStatementArguments) throws -> [T] {
-        // Use the default implementation provided by FuseFetchableRecord
         return try type.fetchAll(self, sql: sql, arguments: arguments)
     }
     
     public func fetchRows(sql: String, arguments: FuseStatementArguments) throws -> [FuseDatabaseRow] {
-        let grdbArguments = convertToGRDBArguments(arguments)
-        let rows = try Row.fetchAll(database, sql: sql, arguments: grdbArguments)
-        return rows.map { GRDBRowWrapper(row: $0) }
-    }
-    
-    private func convertToGRDBArguments(_ fuseArguments: FuseStatementArguments) -> StatementArguments {
-        // Convert our abstract arguments to GRDB StatementArguments
-        let rawArguments = fuseArguments.toGRDBArguments() as! [Any]
-        let grdbArguments: [DatabaseValueConvertible?] = rawArguments.map { value in
-            // Convert Any back to DatabaseValueConvertible
-            if value is NSNull {
-                return nil
-            } else if let dbValue = value as? DatabaseValueConvertible {
-                return dbValue
-            } else {
-                // Fallback for other types
-                return String(describing: value)
-            }
-        }
-        return StatementArguments(grdbArguments)
+        let grdbArgs = StatementArguments((arguments.toGRDBArguments() as! [Any]).map { $0 as? DatabaseValueConvertible })
+        let rows = try Row.fetchAll(database, sql: sql, arguments: grdbArgs)
+        return rows.map { MinimalRow(row: $0) }
     }
 }
 
-/// GRDB wrapper for TableDefinition
-public class GRDBTableBuilderWrapper: FuseTableBuilder {
-    private let tableDefinition: TableDefinition
+/// Minimal table builder
+public class MinimalTableBuilder: FuseTableBuilder {
+    private let definition: TableDefinition
     
-    public init(tableDefinition: TableDefinition) {
-        self.tableDefinition = tableDefinition
+    public init(definition: TableDefinition) {
+        self.definition = definition
     }
     
     public func column(_ name: String, _ type: String, isPrimaryKey: Bool = false, isNotNull: Bool = false, isUnique: Bool = false, defaultValue: FuseDatabaseValueConvertible? = nil) throws {
-        let columnType = convertToDBColumnType(type)
-        var column = tableDefinition.column(name, columnType)
+        let columnType: Database.ColumnType = {
+            switch type.uppercased() {
+            case let t where t.contains("TEXT"): return .text
+            case let t where t.contains("INTEGER"): return .integer
+            case let t where t.contains("REAL"): return .real
+            case let t where t.contains("DOUBLE"): return .double
+            case let t where t.contains("NUMERIC"): return .numeric
+            case let t where t.contains("BOOLEAN"): return .boolean
+            case let t where t.contains("DATE"): return .date
+            case let t where t.contains("DATETIME"): return .datetime
+            case let t where t.contains("BLOB"): return .blob
+            case let t where t.contains("ANY"): return .any
+            default: return .text
+            }
+        }()
         
+        var column = definition.column(name, columnType)
         if isPrimaryKey { column = column.primaryKey() }
         if isNotNull { column = column.notNull() }
         if isUnique { column = column.unique() }
@@ -156,26 +145,11 @@ public class GRDBTableBuilderWrapper: FuseTableBuilder {
             column = column.defaults(to: defaultValue) 
         }
     }
-    
-    private func convertToDBColumnType(_ sqlType: String) -> Database.ColumnType {
-        let up = sqlType.uppercased()
-        if up.contains("TEXT") { return .text }
-        if up.contains("INTEGER") { return .integer }
-        if up.contains("REAL") { return .real }
-        if up.contains("DOUBLE") { return .double }
-        if up.contains("NUMERIC") { return .numeric }
-        if up.contains("BOOLEAN") { return .boolean }
-        if up.contains("DATE") { return .date }
-        if up.contains("DATETIME") { return .datetime }
-        if up.contains("BLOB") { return .blob }
-        if up.contains("ANY") { return .any }
-        return .text
-    }
 }
 
-/// GRDB wrapper for Row
-public class GRDBRowWrapper: FuseDatabaseRow {
-    private let row: Row
+/// Minimal row wrapper
+public class MinimalRow: FuseDatabaseRow {
+    internal let row: Row
     
     public init(row: Row) {
         self.row = row
@@ -184,78 +158,39 @@ public class GRDBRowWrapper: FuseDatabaseRow {
     public subscript(columnName: String) -> Any? {
         return row[columnName]
     }
-    
-    /// Expose the underlying GRDB row for internal use
-    internal var grdbRow: Row {
-        return row
+}
+
+// MARK: - Statement Arguments Simplification
+
+extension FuseStatementArguments {
+    /// Access to values for direct conversion to GRDB
+    internal var grdbArguments: StatementArguments {
+        let grdbArgs = self.toGRDBArguments() as! [Any]
+        return StatementArguments(grdbArgs.map { $0 as? DatabaseValueConvertible })
     }
 }
 
-// MARK: - GRDB Integration Helpers
+// MARK: - Automatic GRDB Conformance for FuseDatabaseRecord
 
-/// Helper function to convert GRDB DatabaseValue to FuseDatabaseValueConvertible
-public func convertGRDBValueToFuseValue(_ value: DatabaseValue) -> FuseDatabaseValueConvertible? {
-    if value.isNull {
-        return nil
-    }
+/// Automatic conformance: Users only need to implement `FuseDatabaseRecord & Codable`
+/// The SDK automatically provides GRDB conformance
+extension FuseDatabaseRecord where Self: Codable {
     
-    // Try different types in order of preference
-    if let stringValue = String.fromDatabaseValue(value) {
-        return stringValue
-    }
-    if let int64Value = Int64.fromDatabaseValue(value) {
-        return int64Value
-    }
-    if let doubleValue = Double.fromDatabaseValue(value) {
-        return doubleValue
-    }
-    if let boolValue = Bool.fromDatabaseValue(value) {
-        return boolValue
-    }
-    if let dateValue = Date.fromDatabaseValue(value) {
-        return dateValue
-    }
-    if let dataValue = Data.fromDatabaseValue(value) {
-        return dataValue
-    }
-    
-    // Fallback to string representation
-    return value.description
-}
-
-/// Helper function to convert FuseDatabaseValueConvertible to GRDB DatabaseValue
-public func convertFuseValueToGRDBValue(_ value: FuseDatabaseValueConvertible?) -> DatabaseValue {
-    guard let value = value else {
-        return .null
-    }
-    
-    if let databaseValueConvertible = value as? DatabaseValueConvertible {
-        return databaseValueConvertible.databaseValue
-    }
-    
-    // Fallback for other types
-    return String(describing: value).databaseValue
-}
-
-// MARK: - GRDB Extensions for FuseDatabaseRecord
-
-/// Extension to provide GRDB-specific implementations for FuseDatabaseRecord
-/// For Codable types, we bridge GRDB's native support with our protocol
-public extension FuseDatabaseRecord where Self: Codable {
-    
-    /// Default implementation that uses GRDB's reflection mechanism
+    /// Provide default toDatabaseValues implementation using reflection
     func toDatabaseValues() -> [String: FuseDatabaseValueConvertible?] {
         var values: [String: FuseDatabaseValueConvertible?] = [:]
-        
         let mirror = Mirror(reflecting: self)
+        
         for child in mirror.children {
             guard let label = child.label else { continue }
             
-            if let convertibleValue = child.value as? FuseDatabaseValueConvertible {
-                values[label] = convertibleValue
-            } else if let optionalValue = child.value as? any OptionalType {
-                values[label] = optionalValue.wrappedValue as? FuseDatabaseValueConvertible
+            // Handle Optional values
+            if let optionalValue = child.value as? OptionalValueType {
+                values[label] = optionalValue.fuseDatabaseValueConvertible
+            } else if let value = child.value as? FuseDatabaseValueConvertible {
+                values[label] = value
             } else {
+                // Fallback for unsupported types
                 values[label] = String(describing: child.value)
             }
         }
@@ -263,49 +198,123 @@ public extension FuseDatabaseRecord where Self: Codable {
         return values
     }
     
-    /// Bridge implementation that works with GRDB's FetchableRecord
-    /// For types that implement both FuseDatabaseRecord and GRDB's FetchableRecord
+    /// Provide default fromDatabase implementation for Codable types
     static func fromDatabase(row: FuseDatabaseRow) throws -> Self {
-        if let grdbRow = row as? GRDBRowWrapper {
-            let grdbRowValue = grdbRow.grdbRow
+        if let minimalRow = row as? MinimalRow {
+            // For Codable types, we need to create a dictionary from the row
+            // and then decode it using JSONDecoder with proper type conversion
+            var data: [String: Any] = [:]
             
-            #if DEBUG
-            print("🔍 Using GRDB FetchableRecord bridge for \(Self.self)")
-            #endif
+            // Detect boolean columns by examining common boolean field names
+            // This is a pragmatic approach since we can't easily do reflection on the type without an instance
+            let commonBooleanFieldNames = Set([
+                "hasAttachment", "isActive", "isCompleted", "isPublic", "isPrivate", "isEnabled", "isDisabled",
+                "isVisible", "isHidden", "isRequired", "isOptional", "isValid", "isInvalid", "isChecked",
+                "isSelected", "isDeleted", "isArchived", "isFavorite", "isBookmarked", "canEdit", "canDelete",
+                "canView", "canCreate", "canUpdate", "shouldSync", "shouldNotify", "willExpire"
+            ])
             
-            // If this type implements GRDB's FetchableRecord, use that implementation
-            if let fetchableType = Self.self as? any FetchableRecord.Type {
-                let instance = try fetchableType.init(row: grdbRowValue)
-                return instance as! Self
-            } else {
-                // This should not happen for properly configured types
-                throw FuseDatabaseError.invalidRecordType
+            for (columnName, dbValue) in minimalRow.row {
+                if let value = dbValue.storage.value {
+                    // Handle SQLite type conversions for JSON compatibility
+                    switch value {
+                    case let intValue as Int64:
+                        // Check if this column should be a boolean based on naming convention
+                        if commonBooleanFieldNames.contains(columnName) {
+                            data[columnName] = intValue != 0
+                        } else {
+                            // For integer values, keep as NSNumber to preserve type info
+                            data[columnName] = NSNumber(value: intValue)
+                        }
+                    case let intValue as Int:
+                        // Check if this column should be a boolean based on naming convention
+                        if commonBooleanFieldNames.contains(columnName) {
+                            data[columnName] = intValue != 0
+                        } else {
+                            data[columnName] = NSNumber(value: intValue)
+                        }
+                    case let doubleValue as Double:
+                        data[columnName] = NSNumber(value: doubleValue)
+                    case let boolValue as Bool:
+                        data[columnName] = boolValue
+                    case let stringValue as String:
+                        data[columnName] = stringValue
+                    case let dataValue as Data:
+                        // Convert Data to Base64 string for JSON
+                        data[columnName] = dataValue.base64EncodedString()
+                    default:
+                        data[columnName] = value
+                    }
+                } else {
+                    data[columnName] = NSNull()
+                }
             }
             
+            // Convert to JSON data and decode
+            let jsonData = try JSONSerialization.data(withJSONObject: data)
+            let decoder = JSONDecoder()
+            
+            // Configure date decoding strategy to handle database date strings
+            decoder.dateDecodingStrategy = .custom { decoder in
+                let container = try decoder.singleValueContainer()
+                
+                if let dateString = try? container.decode(String.self) {
+                    // Parse database date strings (GRDB format: "YYYY-MM-DD HH:MM:SS.SSS")
+                    let formatter = DateFormatter()
+                    formatter.dateFormat = "yyyy-MM-dd HH:mm:ss.SSS"
+                    formatter.timeZone = TimeZone(secondsFromGMT: 0)
+                    
+                    if let date = formatter.date(from: dateString) {
+                        return date
+                    }
+                    
+                    // Try without milliseconds
+                    formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+                    if let date = formatter.date(from: dateString) {
+                        return date
+                    }
+                    
+                    // Try date only
+                    formatter.dateFormat = "yyyy-MM-dd"
+                    if let date = formatter.date(from: dateString) {
+                        return date
+                    }
+                }
+                
+                // Fallback to timestamp if it's a number
+                if let timestamp = try? container.decode(Double.self) {
+                    return Date(timeIntervalSince1970: timestamp)
+                }
+                
+                throw DecodingError.dataCorrupted(
+                    DecodingError.Context(
+                        codingPath: decoder.codingPath,
+                        debugDescription: "Invalid date format"
+                    )
+                )
+            }
+            
+            return try decoder.decode(Self.self, from: jsonData)
         } else {
             throw FuseDatabaseError.invalidRowData
         }
     }
 }
 
-/// Helper protocol to work with Optional types
-private protocol OptionalType {
-    var wrappedValue: Any? { get }
-    static var wrappedType: Any.Type { get }
+// MARK: - Helper Protocol for Optional Value Handling
+
+/// Helper protocol to handle Optional values in reflection
+private protocol OptionalValueType {
+    var fuseDatabaseValueConvertible: FuseDatabaseValueConvertible? { get }
 }
 
-extension Optional: OptionalType {
-    var wrappedValue: Any? {
+extension Optional: OptionalValueType where Wrapped: FuseDatabaseValueConvertible {
+    var fuseDatabaseValueConvertible: FuseDatabaseValueConvertible? {
         switch self {
-        case .none: return nil
-        case .some(let value): return value
+        case .none:
+            return nil
+        case .some(let wrapped):
+            return wrapped
         }
     }
-    
-    static var wrappedType: Any.Type {
-        return Wrapped.self
-    }
 }
-
-// Note: Date already conforms to DatabaseValueConvertible in GRDB
-// This is all we need for complete GRDB Codable support 

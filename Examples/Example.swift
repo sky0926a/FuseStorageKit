@@ -1,4 +1,3 @@
-import FuseStorageCore
 import FuseStorageSQLCipher  // Just import this to enable SQLCipher support
 
 // Define your data model
@@ -62,25 +61,3 @@ func exampleUsage() throws {
     
     print("Database operations completed successfully!")
 }
-
-/*
- Key Benefits:
- 
- 1. 💫 **完全無感使用**: 用戶只需要 import FuseStorageSQLCipher，SQLCipher 支援就會自動啟用
- 2. 🔄 **自動註冊**: 不需要任何手動註冊或初始化代碼
- 3. 🏗️ **模組化設計**: 核心功能在 FuseStorageCore，具體實作在 FuseStorageSQLCipher
- 4. 🔒 **加密支援**: 自動支援 SQLCipher 加密，無需額外設定
- 5. 🧩 **Extension 不能覆蓋**: 使用 Registry 模式而非 extension 覆蓋避免 Swift 限制
- 
- Architecture:
- 
- FuseStorageCore (定義接口):
- ├── FuseDatabaseFactory (protocol)
- ├── FuseDatabaseProxyFactory (使用 Registry)
- └── FuseDatabaseFactoryRegistry (註冊機制)
- 
- FuseStorageSQLCipher (提供實作):
- ├── GRDBSQLCipherDatabaseFactory (具體實作)
- ├── FuseStorageSQLCipherAutoRegister (自動註冊)
- └── GRDB Extensions (FuseDatabaseRecord 實作)
- */ 

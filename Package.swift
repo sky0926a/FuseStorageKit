@@ -27,7 +27,7 @@ let package = Package(
   ],
   targets: [
     .binaryTarget(
-      name: "GRDB",
+      name: "GRDBSQLCipher",
       url: "https://github.com/duckduckgo/GRDB.swift/releases/download/3.0.0/GRDB.xcframework.zip",
       checksum: "41f01022f6a35986393e063e1ef386fd896646ed032f7d0419c4b02fa3afe61d"
     ),
@@ -57,7 +57,7 @@ let package = Package(
       name: "FuseStorageSQLCipher",
       dependencies: [
         "FuseStorageCore",
-        "GRDB",
+        "GRDBSQLCipher",
       ],
       path: "Sources/FuseStorageSQLCipher",
       swiftSettings: [

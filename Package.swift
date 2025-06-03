@@ -8,10 +8,10 @@ let package = Package(
     .macOS(.v11)
   ],
   products: [
-    .library(
-      name: "FuseStorageCore",
-      targets: ["FuseStorageCore"]
-    ),
+//    .library(
+//      name: "FuseStorageCore",
+//      targets: ["FuseStorageCore"]
+//    ),
 //    .library(
 //      name: "FuseStorageKit",
 //      targets: ["FuseStorage"]

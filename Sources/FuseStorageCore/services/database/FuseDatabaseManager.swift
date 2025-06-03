@@ -4,7 +4,6 @@ import Foundation
 /// This class provides a robust and type-safe interface for database operations without directly depending on GRDB.
 public final class FuseDatabaseManager: FuseDatabaseManageable {
     private let dbQueue: FuseDatabaseQueueProtocol
-    private let factory: FuseDatabaseFactory
 
     /// Initializes a new database manager with a specified SQLite file path.
     /// - Parameters:
@@ -13,35 +12,26 @@ public final class FuseDatabaseManager: FuseDatabaseManageable {
     /// - Throws: Database initialization errors if the file cannot be created or accessed
     public init(path: String = "fuse.sqlite", encryptions: EncryptionOptions? = nil) throws {
         // Ensure database modules are initialized before proceeding
-        ensureDatabaseModulesInitialized()
+        
         
         // Get factory from the unified registry
-        self.factory = try FuseStorageModuleRegistry.getDefaultDatabaseFactory()
+        guard let factory = FuseDatabaseFactoryRegistry.shared.mainFactory() else {
+            throw FuseDatabaseError.noFactoryInjected
+        }
         
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         let url = docs.appendingPathComponent(path)
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
 
         // Create database queue
-        self.dbQueue = try self.factory.createDatabaseQueue(path: url.path, encryptionOptions: encryptions)
+        self.dbQueue = try factory.createDatabaseQueue(path: url.path, encryptionOptions: encryptions)
     }
 
     /// Initializes a database manager with an existing database queue.
     /// - Parameter dbQueue: An existing `FuseDatabaseQueueProtocol` instance
-    public init(dbQueue: FuseDatabaseQueueProtocol) {
+    public init(dbQueue: FuseDatabaseQueueProtocol) throws {
         // Ensure database modules are initialized before proceeding
-        ensureDatabaseModulesInitialized()
-        
         self.dbQueue = dbQueue
-        // Use a proxy factory that throws an error since we're not creating new queues
-        self.factory = ProxyDatabaseFactory()
-    }
-    
-    /// A proxy factory used when FuseDatabaseManager is initialized with an existing queue
-    private struct ProxyDatabaseFactory: FuseDatabaseFactory {
-        func createDatabaseQueue(path: String, encryptionOptions: EncryptionOptions?) throws -> FuseDatabaseQueueProtocol {
-            throw FuseDatabaseError.invalidRecordType // This should never be called
-        }
     }
 
     // MARK: - Table Management

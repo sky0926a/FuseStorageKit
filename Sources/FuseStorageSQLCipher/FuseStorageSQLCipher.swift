@@ -2,74 +2,19 @@ import Foundation
 @_exported import FuseStorageCore
 import GRDB
 
-/// This variable triggers module initialization as soon as the module is loaded
-/// The underscore prefix indicates it's an internal implementation detail
-private let _fuseStorageSQLCipherModuleInitialized: Bool = {
-    // Register the module for automatic initialization
-    FuseStorageModuleRegistry.registerModule(FuseStorageSQLCipher.self)
-    // Also initialize immediately for backward compatibility
-    FuseStorageSQLCipher.initialize()
-    return true
-}()
-
-/// FuseStorageSQLCipher module entry point
-/// This module provides SQLCipher-based database implementations for FuseStorageCore
-public struct FuseStorageSQLCipher: FuseStorageModule {
-    /// Returns the version of the FuseStorageSQLCipher module
-    public static let version = "1.0.0"
-    
-    /// Module name for registration
-    public static let moduleName = "FuseStorageSQLCipher"
-    
-    /// Thread-safe initialization flag
-    private static var isInitialized = false
-    private static let initializationLock = NSLock()
-    
-    /// Initialize the SQLCipher module and register the GRDB factory
-    /// This method is safe to call multiple times
-    public static func initialize() {
-        initializationLock.lock()
-        defer { initializationLock.unlock() }
-        
-        guard !isInitialized else {
-            return // Already initialized
-        }
-        
-        // Register the GRDB factory as the default implementation
-        FuseStorageModuleRegistry.setDefaultDatabaseFactory(GRDBSQLCipherDatabaseFactory())
-        isInitialized = true
-        print("FuseStorageSQLCipher module initialized with GRDB factory")
-    }
-    
-    /// Ensures that the module is initialized
-    /// This is a safe method that can be called from anywhere to guarantee initialization
-    /// Note: This method is maintained for backward compatibility
-    public static func ensureInitialized() {
-        _ = _fuseStorageSQLCipherModuleInitialized // This ensures initialize() is called
-    }
-    
-    /// Returns whether the module has been initialized
-    public static var initialized: Bool {
-        initializationLock.lock()
-        defer { initializationLock.unlock() }
-        return isInitialized
-    }
-}
-
 // MARK: - GRDB Implementation
 
-/// GRDB SQLCipher implementation of the database factory
-public struct GRDBSQLCipherDatabaseFactory: FuseDatabaseFactory {
-    public init() {
-        // Note: We don't call ensureInitialized() here to avoid potential circular dependencies
-        // The initialization should happen when the module is first imported
+/// Concrete GRDB SQLCipher implementation of the database factory
+public class GRDBSQLCipherDatabaseFactory: NSObject, FuseDatabaseFactory {
+    public override init() {
+        super.init()
     }
     
     public func createDatabaseQueue(path: String, encryptionOptions: EncryptionOptions?) throws -> FuseDatabaseQueueProtocol {
         var configuration = Configuration()
         if let encryptionOptions = encryptionOptions {
             configuration.prepareDatabase { db in
-                try applyEncryptionOptions(encryptionOptions, to: db)
+                try self.applyEncryptionOptions(encryptionOptions, to: db)
             }
         }
         let grdbQueue = try DatabaseQueue(path: path, configuration: configuration)
@@ -290,4 +235,111 @@ public func convertFuseValueToGRDBValue(_ value: FuseDatabaseValueConvertible?) 
     
     // Fallback for other types
     return String(describing: value).databaseValue
+}
+
+// MARK: - GRDB Extensions for FuseDatabaseRecord
+
+/// Extension to provide GRDB-specific implementations for FuseDatabaseRecord
+public extension FuseDatabaseRecord where Self: Codable {
+    /// GRDB implementation of toDatabaseValues using reflection
+    func toDatabaseValues() -> [String: FuseDatabaseValueConvertible?] {
+        var values: [String: FuseDatabaseValueConvertible?] = [:]
+        
+        let mirror = Mirror(reflecting: self)
+        for child in mirror.children {
+            guard let label = child.label else { continue }
+            
+            // Convert the value to FuseDatabaseValueConvertible
+            if let convertibleValue = child.value as? FuseDatabaseValueConvertible {
+                values[label] = convertibleValue
+            } else if let optionalValue = child.value as? any OptionalType {
+                values[label] = optionalValue.wrappedValue as? FuseDatabaseValueConvertible
+            } else {
+                // Handle other types by converting to string as fallback
+                values[label] = String(describing: child.value)
+            }
+        }
+        
+        return values
+    }
+    
+    /// GRDB implementation of fromDatabase using JSON decoding
+    static func fromDatabase(row: FuseDatabaseRow) throws -> Self {
+        // Create a dictionary from the row data
+        var jsonDict: [String: Any] = [:]
+        
+        // Get all properties from the type using reflection on a default instance
+        let mirror = Mirror(reflecting: try createDefaultInstance())
+        for child in mirror.children {
+            guard let label = child.label else { continue }
+            
+            if let value = row[label] {
+                // Convert values to JSON-compatible types
+                if let grdbRow = row as? GRDBRowWrapper {
+                    // Use the GRDB Row subscript to get DatabaseValue
+                    let grdbValue: DatabaseValue = grdbRow.grdbRow[label]
+                    jsonDict[label] = convertGRDBDatabaseValueToJSON(grdbValue)
+                } else {
+                    jsonDict[label] = value
+                }
+            }
+        }
+        
+        // Convert to JSON data and decode
+        let jsonData = try JSONSerialization.data(withJSONObject: jsonDict)
+        return try JSONDecoder().decode(Self.self, from: jsonData)
+    }
+    
+    /// Helper method to create a default instance for reflection
+    private static func createDefaultInstance() throws -> Self {
+        // Try to decode from empty JSON first (works if all properties are optional or have default values)
+        if let instance = try? JSONDecoder().decode(Self.self, from: Data("{}".utf8)) {
+            return instance
+        }
+        
+        // If that fails, try to create an instance with null values for all properties
+        // This is a more complex approach, but for now we'll use a simpler fallback
+        throw FuseDatabaseError.invalidRecordType
+    }
+}
+
+/// Helper protocol to work with Optional types
+private protocol OptionalType {
+    var wrappedValue: Any? { get }
+}
+
+extension Optional: OptionalType {
+    var wrappedValue: Any? {
+        switch self {
+        case .none: return nil
+        case .some(let value): return value
+        }
+    }
+}
+
+/// Helper function to convert GRDB DatabaseValue to JSON-compatible types
+private func convertGRDBDatabaseValueToJSON(_ value: DatabaseValue) -> Any? {
+    if value.isNull {
+        return nil
+    }
+    
+    // Try different types in order
+    if let stringValue = String.fromDatabaseValue(value) {
+        return stringValue
+    }
+    if let int64Value = Int64.fromDatabaseValue(value) {
+        return int64Value
+    }
+    if let doubleValue = Double.fromDatabaseValue(value) {
+        return doubleValue
+    }
+    if let boolValue = Bool.fromDatabaseValue(value) {
+        return boolValue
+    }
+    if let dataValue = Data.fromDatabaseValue(value) {
+        return dataValue
+    }
+    
+    // Fallback
+    return value.description
 } 

@@ -133,121 +133,40 @@ public protocol FuseDatabaseFactory {
     func createDatabaseQueue(path: String, encryptionOptions: EncryptionOptions?) throws -> FuseDatabaseQueueProtocol
 }
 
-// MARK: - Module System
-
-/// A protocol for modules that can be automatically initialized
-public protocol FuseStorageModule {
-    /// The name of the module for identification purposes
-    static var moduleName: String { get }
+// MARK: - Database Factory Registry
+/// Registry for managing database factory implementations
+class FuseDatabaseFactoryRegistry {
+    static let shared = FuseDatabaseFactoryRegistry()
     
-    /// Initialize the module and register its services
-    static func initialize()
+    private var registeredFactory: FuseDatabaseFactory?
+    private let lock = NSLock()
     
-    /// Check if the module has been initialized
-    static var initialized: Bool { get }
-}
-
-/// Registry for managing FuseStorage modules and services
-public class FuseStorageModuleRegistry {
-    private static var registeredModules: [String: FuseStorageModule.Type] = [:]
-    private static var initializedModules: Set<String> = []
-    private static var defaultDatabaseFactory: FuseDatabaseFactory?
-    private static let lock = NSLock()
-    
-    /// Register a module for automatic initialization
-    /// - Parameter moduleType: The module type to register
-    public static func registerModule(_ moduleType: FuseStorageModule.Type) {
-        lock.lock()
-        defer { lock.unlock() }
-        registeredModules[moduleType.moduleName] = moduleType
+    private init() {
+        tryFactoryRegistration()
     }
     
-    /// Initialize all registered modules
-    public static func initializeAllModules() {
+    /// Register a database factory implementation
+    /// This is typically called by database implementation modules during their initialization
+    private func setMainFactory(_ factory: FuseDatabaseFactory) {
         lock.lock()
         defer { lock.unlock() }
-        
-        for (moduleName, moduleType) in registeredModules {
-            if !initializedModules.contains(moduleName) {
-                moduleType.initialize()
-                initializedModules.insert(moduleName)
+        registeredFactory = factory
+    }
+    
+    /// Get the currently registered factory
+    /// Returns nil if no factory has been registered
+    func mainFactory() -> FuseDatabaseFactory? {
+        lock.lock()
+        defer { lock.unlock() }
+        return registeredFactory
+    }
+    
+    private func tryFactoryRegistration() {
+        if let factoryClass = NSClassFromString("FuseStorageSQLCipher.GRDBSQLCipherDatabaseFactory") as? NSObject.Type {
+            // If the class exists, try to create an instance which should trigger registration
+            if let factory = factoryClass.init() as? FuseDatabaseFactory {
+                setMainFactory(factory)
             }
         }
-    }
-    
-    /// Check if a specific module is initialized
-    /// - Parameter moduleName: The name of the module to check
-    /// - Returns: True if the module is initialized
-    public static func isModuleInitialized(_ moduleName: String) -> Bool {
-        lock.lock()
-        defer { lock.unlock() }
-        return initializedModules.contains(moduleName)
-    }
-    
-    /// Get list of all registered modules
-    /// - Returns: Array of module names
-    public static func getRegisteredModules() -> [String] {
-        lock.lock()
-        defer { lock.unlock() }
-        return Array(registeredModules.keys)
-    }
-    
-    // MARK: - Database Factory Management
-    
-    /// Sets the default database factory
-    /// - Parameter factory: The factory to use as default
-    public static func setDefaultDatabaseFactory(_ factory: FuseDatabaseFactory) {
-        lock.lock()
-        defer { lock.unlock() }
-        defaultDatabaseFactory = factory
-    }
-    
-    /// Gets the default database factory
-    /// - Returns: The default factory, or throws an error if none is set
-    public static func getDefaultDatabaseFactory() throws -> FuseDatabaseFactory {
-        lock.lock()
-        defer { lock.unlock() }
-        
-        // If no factory is available, try running initialization hooks
-        if defaultDatabaseFactory == nil {
-            lock.unlock() // Release lock temporarily to avoid deadlock
-            initializeAllModules()
-            lock.lock()
-        }
-        
-        guard let factory = defaultDatabaseFactory else {
-            throw FuseDatabaseError.noFactoryInjected
-        }
-        return factory
-    }
-    
-    /// Checks if a default database factory is available
-    /// - Returns: True if a factory is available
-    public static func hasDefaultDatabaseFactory() -> Bool {
-        lock.lock()
-        defer { lock.unlock() }
-        return defaultDatabaseFactory != nil
-    }
-    
-    /// Clears all registrations (useful for testing)
-    public static func clearAll() {
-        lock.lock()
-        defer { lock.unlock() }
-        registeredModules.removeAll()
-        initializedModules.removeAll()
-        defaultDatabaseFactory = nil
-    }
-}
-
-/// Convenience function to ensure database modules are initialized
-public func ensureDatabaseModulesInitialized() {
-    // Trigger module initialization
-    FuseStorageModuleRegistry.initializeAllModules()
-    
-    // If still no factory after module initialization, provide helpful guidance
-    if !FuseStorageModuleRegistry.hasDefaultDatabaseFactory() {
-        print("Warning: No database factory registered after module initialization.")
-        print("Make sure to 'import FuseStorageSQLCipher' in your code to enable SQLCipher database support.")
-        print("The FuseStorageSQLCipher module provides GRDB-based SQLite database functionality.")
     }
 }

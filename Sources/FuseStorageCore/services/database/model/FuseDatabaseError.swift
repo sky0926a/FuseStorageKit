@@ -36,4 +36,11 @@ public enum FuseDatabaseError: Error {
     /// This error occurs when trying to convert database row data that doesn't
     /// match the expected format or contains invalid values.
     case invalidRowData
+    
+    /// Indicates that no database implementation is available
+    /// 
+    /// This error occurs when trying to use database functionality without
+    /// importing a specific database implementation module.
+    /// - Parameter message: A descriptive message about the missing implementation
+    case noImplementationAvailable(String)
 }

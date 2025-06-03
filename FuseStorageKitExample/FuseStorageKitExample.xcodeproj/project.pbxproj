@@ -121,7 +121,6 @@
 			);
 			name = FuseStorageKitExample;
 			packageProductDependencies = (
-				C5A6B0012DFB87DE00F5AF37 /* FuseStorageKit */,
 				BF93C3B22DE8588A000EBCCC /* FuseStorageKitSQLCipher */,
 			);
 			productName = FuseStorageKitExample;
@@ -594,10 +593,6 @@
 		BF93C3B22DE8588A000EBCCC /* FuseStorageKitSQLCipher */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = FuseStorageKitSQLCipher;
-		};
-		C5A6B0012DFB87DE00F5AF37 /* FuseStorageKit */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = FuseStorageKit;
 		};
 		C5A6B0032DFB882F00F5AF37 /* FuseStorageKit */ = {
 			isa = XCSwiftPackageProductDependency;

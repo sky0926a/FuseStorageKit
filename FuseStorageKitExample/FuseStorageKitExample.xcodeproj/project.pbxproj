@@ -7,9 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		BF93C3B32DE8588A000EBCCC /* FuseStorageKitSQLCipher in Frameworks */ = {isa = PBXBuildFile; productRef = BF93C3B22DE8588A000EBCCC /* FuseStorageKitSQLCipher */; };
 		BF93C43F2DEF6341000EBCCC /* FuseStorageKitSQLCipher in Frameworks */ = {isa = PBXBuildFile; productRef = BF93C43E2DEF6341000EBCCC /* FuseStorageKitSQLCipher */; };
 		BF93C4412DEF634B000EBCCC /* FuseStorageKitSQLCipher in Frameworks */ = {isa = PBXBuildFile; productRef = BF93C4402DEF634B000EBCCC /* FuseStorageKitSQLCipher */; };
+		BF93C4D82DF16ADA000EBCCC /* FuseStorageKitSQLCipher in Frameworks */ = {isa = PBXBuildFile; productRef = BF93C3B22DE8588A000EBCCC /* FuseStorageKitSQLCipher */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -58,7 +58,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				BF93C3B32DE8588A000EBCCC /* FuseStorageKitSQLCipher in Frameworks */,
+				BF93C4D82DF16ADA000EBCCC /* FuseStorageKitSQLCipher in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

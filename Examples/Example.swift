@@ -16,6 +16,18 @@ struct User: FuseDatabaseRecord {
         self.email = email
         self.age = age
     }
+    
+    static func tableDefinition() -> FuseTableDefinition {
+        return FuseTableDefinition(
+            name: User.databaseTableName,
+            columns: [
+                FuseColumnDefinition(name: "id", type: .integer, isPrimaryKey: true),
+                FuseColumnDefinition(name: "name", type: .text, isNotNull: true),
+                FuseColumnDefinition(name: "email", type: .text, isUnique: true),
+                FuseColumnDefinition(name: "age", type: .integer)
+            ]
+        )
+    }
 }
 
 // Usage example - completely seamless!
@@ -24,16 +36,8 @@ func exampleUsage() throws {
     let dbManager = try FuseDatabaseManager(path: "my_app.sqlite")
     
     // 2. Create table
-    let tableDefinition = FuseTableDefinition(
-        name: User.databaseTableName,
-        columns: [
-            FuseColumnDefinition(name: "id", type: .integer, isPrimaryKey: true),
-            FuseColumnDefinition(name: "name", type: .text, isNotNull: true),
-            FuseColumnDefinition(name: "email", type: .text, isUnique: true),
-            FuseColumnDefinition(name: "age", type: .integer)
-        ]
-    )
-    try dbManager.createTable(tableDefinition)
+   
+    try dbManager.createTable(User.tableDefinition())
     
     // 3. Add users
     let user1 = User(id: 1, name: "Alice", email: "alice@example.com", age: 30)

@@ -138,19 +138,19 @@ public protocol FuseDatabaseFactory {
 
 // MARK: - Database Factory Registry
 /// Registry for managing database factory implementations
-class FuseDatabaseFactoryRegistry {
-    static let shared = FuseDatabaseFactoryRegistry()
+public class FuseDatabaseFactoryRegistry {
+    public static let shared = FuseDatabaseFactoryRegistry()
     
     private var registeredFactory: FuseDatabaseFactory?
     private let lock = NSLock()
     
     private init() {
-        tryFactoryRegistration()
+//        tryFactoryRegistration()
     }
     
     /// Register a database factory implementation
     /// This is typically called by database implementation modules during their initialization
-    private func setMainFactory(_ factory: FuseDatabaseFactory) {
+    public func setMainFactory(_ factory: FuseDatabaseFactory) {
         lock.lock()
         defer { lock.unlock() }
         registeredFactory = factory
@@ -165,7 +165,13 @@ class FuseDatabaseFactoryRegistry {
     }
     
     private func tryFactoryRegistration() {
-        if let factoryClass = NSClassFromString("FuseStorageSQLCipher.FuseGRDBDatabaseFactory") as? NSObject.Type {
+        #if use_sqlcipher
+        let factoryClassName = "FuseStorageSQLCipher.FuseGRDBDatabaseFactory"
+        #else
+        let factoryClassName = "FuseStorageSQLCipher.FuseGRDBDatabaseFactory"
+        #endif
+        
+        if let factoryClass = NSClassFromString(factoryClassName) as? NSObject.Type {
             // If the class exists, try to create an instance which should trigger registration
             if let factory = factoryClass.init() as? FuseDatabaseFactory {
                 setMainFactory(factory)

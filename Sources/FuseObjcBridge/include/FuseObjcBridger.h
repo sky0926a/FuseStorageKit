@@ -1,0 +1,17 @@
+//
+//  FuseObjcBridger.h
+//  FuseStorageKit
+//
+//  Created by Jimmy on 2025/6/4.
+//
+
+#ifndef FuseObjcBridger_h
+#define FuseObjcBridger_h
+
+#import <Foundation/Foundation.h>
+
+@interface FuseObjcBridger : NSObject
++ (void)swiftLoad;
+@end
+
+#endif

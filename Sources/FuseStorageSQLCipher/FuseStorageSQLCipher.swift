@@ -1,6 +1,7 @@
 import Foundation
 @_exported import FuseStorageCore
 import GRDB
+import FuseObjcBridge
 
 // MARK: - Fsue GRDB Integration
 class FuseGRDBDatabaseFactory: NSObject, FuseDatabaseFactory {
@@ -10,8 +11,11 @@ class FuseGRDBDatabaseFactory: NSObject, FuseDatabaseFactory {
     
     func createDatabaseQueue(path: String, encryptionOptions: EncryptionOptions?) throws -> FuseDatabaseQueueProtocol {
         var configuration = Configuration()
-        if let encryptionOptions = encryptionOptions, !encryptionOptions.passphrase.isEmpty {
+        if let encryptionOptions = encryptionOptions {
             configuration.prepareDatabase { db in
+                if encryptionOptions.passphrase.isEmpty {
+                    throw FuseDatabaseError.missingPassphrase
+                }
                 try Self.applyEncryptionOptions(encryptionOptions, to: db)
             }
         }
@@ -20,10 +24,6 @@ class FuseGRDBDatabaseFactory: NSObject, FuseDatabaseFactory {
     }
     
     private static func applyEncryptionOptions(_ options: EncryptionOptions, to db: Database) throws {
-        guard !options.passphrase.isEmpty else {
-            throw FuseDatabaseError.missingPassphrase
-        }
-        
         try db.usePassphrase(options.passphrase)
 
         if let pageSize = options.pageSize {
@@ -172,5 +172,13 @@ extension FuseColumnType {
         case .blob: return .blob
         case .any: return .any
         }
+    }
+}
+
+class FuseGRDBFactoryRegistry: FuseObjcBridger {
+    @objc public override static func swiftLoad() {
+        let factory = FuseGRDBDatabaseFactory()
+        FuseDatabaseFactoryRegistry.shared.setMainFactory(factory)
+        print("FuseGRDBFactoryRegistry load")
     }
 }

@@ -38,6 +38,11 @@ let package = Package(
       ],
       path: "Sources/FuseStorageCore"
     ),
+    .target(
+          name: "FuseObjcBridge",
+          path: "Sources/FuseObjcBridge",
+          publicHeadersPath: "include"
+        ),
 //    .target(
 //      name: "FuseStorage",
 //      dependencies: [
@@ -54,11 +59,11 @@ let package = Package(
       dependencies: [
         "FuseStorageCore",
         "GRDBSQLCipher",
+        "FuseObjcBridge"
       ],
       path: "Sources/FuseStorageSQLCipher",
       swiftSettings: [
-//        .define("USE_GRDB"),
-//        .define("SQLITE_HAS_CODEC"),
+        .define("use_sqlcipher"),
       ]
     ),
     .testTarget(

@@ -1,10 +1,10 @@
 #import "FuseObjcBridger.h"
+#import <Foundation/Foundation.h>
 
-@implementation FuseObjcBridger
-+ (void)load {
-    [self swiftLoad];
+// Constructor function that runs before main()
+__attribute__((constructor))
+static void runAutoRegister(void) {
+    NSLog(@"Constructor runAutoRegister called - calling Swift factory registration");
+    // Direct call to Swift function
+    fuseRegisterFactory();
 }
-
-+ (void)swiftLoad {
-}
-@end

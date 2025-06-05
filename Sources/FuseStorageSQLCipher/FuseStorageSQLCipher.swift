@@ -3,6 +3,14 @@ import Foundation
 import GRDB
 import FuseObjcBridge
 
+// MARK: - C-callable Swift function for auto registration
+@_cdecl("fuseRegisterFactory")
+public func fuseRegisterFactory() {
+    let factory = FuseGRDBDatabaseFactory()
+    FuseDatabaseFactoryRegistry.shared.setMainFactory(factory)
+    print("GRDB Factory auto-registered via C constructor")
+}
+
 // MARK: - Fsue GRDB Integration
 class FuseGRDBDatabaseFactory: NSObject, FuseDatabaseFactory {
     override init() {
@@ -175,10 +183,3 @@ extension FuseColumnType {
     }
 }
 
-class FuseGRDBFactoryRegistry: FuseObjcBridger {
-    @objc public override static func swiftLoad() {
-        let factory = FuseGRDBDatabaseFactory()
-        FuseDatabaseFactoryRegistry.shared.setMainFactory(factory)
-        print("FuseGRDBFactoryRegistry load")
-    }
-}

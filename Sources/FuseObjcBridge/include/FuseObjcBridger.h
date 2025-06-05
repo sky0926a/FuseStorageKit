@@ -10,8 +10,7 @@
 
 #import <Foundation/Foundation.h>
 
-@interface FuseObjcBridger : NSObject
-+ (void)swiftLoad;
-@end
+// C function that can be called from constructor
+void fuseRegisterFactory(void);
 
 #endif

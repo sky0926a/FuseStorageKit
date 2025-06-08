@@ -1,13 +1,35 @@
 # FuseStorageKit
+<a href="https://developer.apple.com/swift/"><img alt="Swift 6" src="https://img.shields.io/badge/swift-6-orange.svg?style=flat"></a>
+<a href="https://github.com/sky0926a/FuseStorageKit/blob/master/LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-black"></a>
+<a href="https://github.com/sky0926a/FuseStorageKit/blob/master/USAGE.md"><img src="https://img.shields.io/badge/Swift-Doc-DE5C43.svg?style=flat"></a>
 
-FuseStorageKit is a lightweight storage solution for iOS and macOS, providing a unified, abstracted interface for handling:
+A lightweight, unified storage solution for iOS and macOS that provides a single interface for:
 
-- Local Database Storage (with optional encryption)
-- File System Storage
-- User Preferences
-- Cloud Synchronization (optional)
+- **Database Storage** - SQLite with optional AES-256 encryption
+- **File Management** - Structured file system operations
+- **Preferences Storage** - UserDefaults and Keychain integration
+- **Cloud Synchronization** - Optional Firebase support
 
-It allows developers to interact with various storage mechanisms through a single facade, abstracting away the complexities of underlying implementations like GRDB with SQLCipher support or Firebase Store.
+FuseStorageKit abstracts away the complexities of underlying implementations (GRDB, SQLCipher, Firebase) through a simple builder pattern and manager facade.
+
+> 📖 **For complete API documentation, see [USAGE.md](USAGE.md)**
+
+## Core Concepts
+
+Before diving into usage, let's understand the key concepts:
+
+### 🏗️ Builder Pattern
+FuseStorageKit uses a builder pattern to configure storage components. You create a `FuseStorageBuilder`, configure it with various storage options, then build a `FuseStorage` instance.
+
+### 📦 Storage Managers
+The `FuseStorage` instance contains different types of managers:
+- **Database Manager**: Handle SQLite operations
+- **Preferences Manager**: Handle settings and configuration
+- **File Manager**: Handle file system operations
+- **Sync Manager**: Handle cloud synchronization
+
+### 🔍 Query Objects
+To access specific managers, you use the same builder options as "query objects" to identify which manager you want.
 
 ## Features
 
@@ -68,394 +90,354 @@ Or add it through Xcode:
 
 ## Quick Start
 
-### Basic Usage
+### Step 1: Import and Create Storage
 
 ```swift
 import FuseStorageKit
 
-// Simple setup with default configurations
-let storage = try FuseStorageBuilder().build()
-
-// Get managers
-let dbManager = storage.db(.sqlite())!
-let prefsManager = storage.pref(.userDefaults())!
-let fileManager = storage.file(.document())!
-
-// Define your data model
-struct Note: FuseDatabaseRecord {
-    var id: String
-    var title: String
-    var content: String
-    var createdAt: Date
-    
-    static var _fuseidField: String = "id"
-    
-    static func tableDefinition() -> FuseTableDefinition {
-        let columns: [FuseColumnDefinition] = [
-            FuseColumnDefinition(name: "id", type: .text, isPrimaryKey: true, isNotNull: true),
-            FuseColumnDefinition(name: "title", type: .text, isNotNull: true),
-            FuseColumnDefinition(name: "content", type: .text, isNotNull: true),
-            FuseColumnDefinition(name: "createdAt", type: .date, isNotNull: true)
-        ]
-        return FuseTableDefinition(name: "notes", columns: columns)
-    }
-}
-
-// Create table and add data
-try dbManager.createTable(Note.tableDefinition())
-
-let note = Note(id: UUID().uuidString, title: "Hello", content: "World", createdAt: Date())
-try dbManager.add(note)
-
-// Fetch data
-let allNotes: [Note] = try dbManager.fetch(of: Note.self)
-```
-
-## Detailed Usage
-
-### 1. Initialization and Configuration
-
-Initialize `FuseStorage` using the `FuseStorageBuilder`. The builder pattern allows you to configure different storage components using builder options.
-
-```swift
-// Basic setup with default configurations
-let storage = try FuseStorageBuilder().build()
-
-// Configure specific components
-let customStorage = try FuseStorageBuilder()
-    .with(database: .sqlite("myapp.db"))
-    .with(preferences: .userDefaults("com.myapp.settings"))
-    .with(file: .document("MyAppFiles"))
-    .with(sync: .noSync())
-    .build()
-
-// Multiple managers of the same type
-let multiStorage = try FuseStorageBuilder()
-    .with(database: .sqlite("main.db"))
-    .with(database: .sqlite("cache.db"))
-    .with(preferences: .userDefaults("general"))
-    .with(preferences: .keychain("secure", accessibility: .whenUnlocked))
-    .with(file: .document("Documents"))
-    .with(file: .cache("Cache"))
-    .build()
-
-// With Firebase sync (requires Firebase SDK)
-#if canImport(FirebaseFirestore)
-let cloudStorage = try FuseStorageBuilder()
+// Create storage with specific configurations
+let storage = try FuseStorageBuilder()
     .with(database: .sqlite())
     .with(preferences: .userDefaults())
     .with(file: .document())
-    .with(sync: .firebase())
     .build()
-#endif
 ```
 
-### 2. Accessing Storage Components
-
-Access different storage managers through the `FuseStorage` instance using query objects:
+### Step 2: Get Managers
 
 ```swift
-// Get managers using builder options as queries
-let dbManager = storage.db(.sqlite("myapp.db"))
-let prefsManager = storage.pref(.userDefaults("com.myapp.settings"))
-let fileManager = storage.file(.document("MyAppFiles"))
-let syncManager = storage.sync(.noSync())
+// Get different types of managers
+let dbManager = storage.db(.sqlite())!         // Database operations
+let prefsManager = storage.pref(.userDefaults())!  // Preferences storage
+let fileManager = storage.file(.document())!    // File operations
 ```
 
-### 3. Database Management
-
-#### Database Model Creation
-
-Your data models must conform to the `FuseDatabaseRecord` protocol:
+### Step 3: Store Simple Data
 
 ```swift
-struct Note: FuseDatabaseRecord {
-    var id: String
-    var title: String
-    var content: String
-    var createdAt: Date
-    var hasAttachment: Bool = false
-    var attachmentPath: String? = nil
+// Store preferences
+try prefsManager.set("John Doe", forKey: "username")
+try prefsManager.set(25, forKey: "userAge")
 
-    // Provide the field name that serves as the unique identifier
-    static var _fuseidField: String = "id"
-
-    // Define the database table and columns
-    static func tableDefinition() -> FuseTableDefinition {
-        let columns: [FuseColumnDefinition] = [
-            FuseColumnDefinition(name: "id", type: .text, isPrimaryKey: true, isNotNull: true),
-            FuseColumnDefinition(name: "title", type: .text, isNotNull: true),
-            FuseColumnDefinition(name: "content", type: .text, isNotNull: true),
-            FuseColumnDefinition(name: "createdAt", type: .date, isNotNull: true),
-            FuseColumnDefinition(name: "hasAttachment", type: .boolean, isNotNull: true, defaultValue: "0"),
-            FuseColumnDefinition(name: "attachmentPath", type: .text)
-        ]
-
-        return FuseTableDefinition(name: "notes", columns: columns)
-    }
-}
+// Retrieve preferences
+let username: String? = prefsManager.get(forKey: "username")  // "John Doe"
+let age: Int? = prefsManager.get(forKey: "userAge")          // 25
 ```
 
-#### Basic Database Operations
+### Step 4: Store Files
 
 ```swift
-// Get database manager
-let dbManager = storage.db(.sqlite("notes.db"))!
+// Save text data
+let textData = "Hello, World!".data(using: .utf8)!
+let fileURL = try fileManager.save(data: textData, relativePath: "hello.txt")
 
-// Create table
-try dbManager.createTable(Note.tableDefinition())
-
-// Add records
-let newNote = Note(id: UUID().uuidString, title: "Sample", content: "Content", createdAt: Date())
-try dbManager.add(newNote)
-
-// Batch insert
-let batchNotes = [
-    Note(id: UUID().uuidString, title: "Note 1", content: "Content 1", createdAt: Date()),
-    Note(id: UUID().uuidString, title: "Note 2", content: "Content 2", createdAt: Date())
-]
-try dbManager.add(batchNotes)
-
-// Fetch all records
-let allNotes: [Note] = try dbManager.fetch(of: Note.self)
-
-// Fetch with filtering
-let filters = [FuseQueryFilter.equals(field: "hasAttachment", value: true)]
-let notesWithAttachments: [Note] = try dbManager.fetch(of: Note.self, filters: filters)
-
-// Fetch with sorting and pagination
-let sortedNotes: [Note] = try dbManager.fetch(
-    of: Note.self,
-    sort: FuseQuerySort(field: "createdAt", ascending: false),
-    limit: 10,
-    offset: 0
-)
-
-// Delete records
-try dbManager.delete(newNote)
-try dbManager.delete(batchNotes)
+// Retrieve file URL
+let retrievedURL = fileManager.url(for: "hello.txt")
 ```
 
-#### Database Encryption
+That's it! You now have a working storage system. Continue reading for database operations and advanced features.
 
-FuseStorageKit provides enterprise-grade AES-256 encryption via SQLCipher for secure database storage.
+## Next Steps
 
-```swift
-import FuseStorageKit
+- 📖 **[Complete API Guide](USAGE.md)** - Comprehensive documentation with all protocols, classes, and usage patterns
+- 🔧 **[Builder Options Reference](#builder-options-reference)** - All available configuration options
+- 📱 **[Example App](FuseStorageKitExample/)** - Working iOS app demonstrating real-world usage
 
-// Standard security level (recommended)
-let standardEncryption = EncryptionOptions.standard(passphrase: "YourSecurePassphrase")
+## Key Features
 
-// High security level
-let highSecurityEncryption = EncryptionOptions.high(passphrase: "YourSecurePassphrase")
-
-// Performance-optimized
-let performanceEncryption = EncryptionOptions.performance(passphrase: "YourSecurePassphrase")
-
-// Custom encryption configuration
-let customEncryption = EncryptionOptions("YourSecurePassphrase")
-    .pageSize(4096)
-    .kdfIter(64000)
-    .memorySecurity(true)
-
-// Build storage with encrypted database
-let secureStorage = try FuseStorageBuilder()
-    .with(database: .sqlite("encrypted.db", encryptions: standardEncryption))
-    .build()
-
-let encryptedDbManager = secureStorage.db(.sqlite("encrypted.db"))!
-```
-
-### 4. File Management
-
-The file manager provides a simple interface for file operations:
-
-```swift
-// Configure file storage
-let storage = try FuseStorageBuilder()
-    .with(file: .document("MyAppFiles"))    // Documents directory
-    .with(file: .cache("TempFiles"))        // Cache directory
-    .build()
-
-let fileManager = storage.file(.document("MyAppFiles"))!
-
-// Save images
-#if os(iOS) || os(tvOS) || os(watchOS)
-import UIKit
-let image = UIImage(named: "profile")!
-#elseif os(macOS)
-import AppKit
-let image = NSImage(named: "profile")!
-#endif
-
-let imagePath = "profiles/user123.jpg"
-let savedImageURL = try fileManager.save(image: image, fileName: imagePath)
-
-// Save data files
-let jsonData = try JSONEncoder().encode(["key": "value"])
-let dataPath = "configuration/settings.json"
-let savedDataURL = try fileManager.save(data: jsonData, relativePath: dataPath)
-
-// Get file URLs
-let imageURL = fileManager.url(for: imagePath)
-let dataURL = fileManager.url(for: dataPath)
-
-// Delete files
-try fileManager.delete(relativePath: dataPath)
-```
-
-### 5. Preferences Management
-
-The preferences manager provides type-safe storage for settings and configuration:
-
-```swift
-// Configure preferences storage
-let storage = try FuseStorageBuilder()
-    .with(preferences: .userDefaults("com.myapp.settings"))
-    .with(preferences: .keychain("com.myapp.secure", accessibility: .whenUnlocked))
-    .build()
-
-let userDefaultsManager = storage.pref(.userDefaults("com.myapp.settings"))!
-let keychainManager = storage.pref(.keychain("com.myapp.secure"))!
-
-// Store simple values
-try userDefaultsManager.set(true, forKey: "isDarkModeEnabled")
-try userDefaultsManager.set(42, forKey: "lastSelectedTab")
-try userDefaultsManager.set("English", forKey: "preferredLanguage")
-
-// Store sensitive data in keychain
-try keychainManager.set("user_token_123", forKey: "authToken")
-try keychainManager.set("secret_password", forKey: "userPassword")
-
-// Store complex objects
-struct UserPreferences: Codable {
-    var theme: String
-    var fontSize: Int
-    var notifications: Bool
-}
-
-let preferences = UserPreferences(theme: "Dark", fontSize: 14, notifications: true)
-try userDefaultsManager.set(preferences, forKey: "userPreferences")
-
-// Retrieve values
-let isDarkMode: Bool? = userDefaultsManager.get(forKey: "isDarkModeEnabled")
-let userPrefs: UserPreferences? = userDefaultsManager.get(forKey: "userPreferences")
-let authToken: String? = keychainManager.get(forKey: "authToken")
-
-// Check existence and remove
-let hasSettings = userDefaultsManager.containsValue(forKey: "userPreferences")
-userDefaultsManager.removeValue(forKey: "temporarySetting")
-```
+- **Unified API** - Single interface for database, file, preferences, and sync operations
+- **Builder Pattern** - Fluent configuration with factory methods
+- **Multiple Managers** - Support multiple instances with different configurations
+- **AES-256 Encryption** - Enterprise-grade database security via SQLCipher
+- **Type-Safe** - Leverages Swift generics and Codable protocol
+- **Cross-Platform** - Works on iOS, macOS, tvOS, and watchOS
+- **Modular Design** - Pluggable components via protocols
 
 ## Builder Options Reference
 
+FuseStorageKit provides comprehensive configuration options for each storage component. Here are all available options with detailed usage examples:
+
 ### Database Options
 
+#### SQLite Database
 ```swift
-// Standard SQLite database
+// Standard SQLite database with default name
+.with(database: .sqlite())
+
+// SQLite database with custom filename
 .with(database: .sqlite("myapp.db"))
 
-// Encrypted SQLite database
-.with(database: .sqlite("secure.db", encryptions: EncryptionOptions.standard(passphrase: "secret")))
+// Encrypted SQLite database with standard security
+.with(database: .sqlite("secure.db", encryptions: EncryptionOptions.standard(passphrase: "mySecretKey")))
 
+// Encrypted SQLite database with high security
+.with(database: .sqlite("secure.db", encryptions: EncryptionOptions.high(passphrase: "mySecretKey")))
+
+// Encrypted SQLite database with performance optimization
+.with(database: .sqlite("fast.db", encryptions: EncryptionOptions.performance(passphrase: "mySecretKey")))
+
+// Custom encryption configuration
+let customEncryption = EncryptionOptions("mySecretKey")
+    .pageSize(4096)
+    .kdfIter(64000)
+    .memorySecurity(true)
+.with(database: .sqlite("custom.db", encryptions: customEncryption))
+```
+
+#### Custom Database
+```swift
 // Custom database implementation
 .with(database: .custom("mydb", database: MyCustomDatabaseManager()))
 ```
 
 ### Preferences Options
 
+#### UserDefaults Configuration
 ```swift
-// UserDefaults with custom suite
+// Standard UserDefaults
+.with(preferences: .userDefaults())
+
+// UserDefaults with nil suite (uses standard)
+.with(preferences: .userDefaults(nil))
+
+// UserDefaults with custom suite name
 .with(preferences: .userDefaults("com.myapp.settings"))
 
-// Keychain storage
-.with(preferences: .keychain("com.myapp.secure", accessibility: .whenUnlocked))
+// UserDefaults for app groups (shared between apps)
+.with(preferences: .userDefaults("group.com.mycompany.myappgroup"))
+```
 
+#### Keychain Configuration
+```swift
+// Keychain with service name and default accessibility
+.with(preferences: .keychain("com.myapp.secure"))
+
+// Keychain with custom accessibility level
+.with(preferences: .keychain("com.myapp.tokens", accessibility: .whenUnlockedThisDeviceOnly))
+
+// Keychain with access group for sharing between apps
+.with(preferences: .keychain("com.myapp.shared", accessGroup: "TEAMID.com.mycompany.shared"))
+
+// All keychain accessibility options:
+.with(preferences: .keychain("service", accessibility: .whenUnlocked))          // Default - accessible when device unlocked
+.with(preferences: .keychain("service", accessibility: .afterFirstUnlock))     // Accessible after first unlock
+.with(preferences: .keychain("service", accessibility: .always))               // Always accessible (less secure)
+.with(preferences: .keychain("service", accessibility: .whenPasscodeSetThisDeviceOnly))  // Requires passcode
+.with(preferences: .keychain("service", accessibility: .whenUnlockedThisDeviceOnly))     // This device only
+.with(preferences: .keychain("service", accessibility: .afterFirstUnlockThisDeviceOnly)) // After first unlock, this device only
+.with(preferences: .keychain("service", accessibility: .alwaysThisDeviceOnly))           // Always accessible, this device only
+```
+
+#### Custom Preferences
+```swift
 // Custom preferences implementation
 .with(preferences: .custom("myprefs", preferences: MyCustomPreferencesManager()))
 ```
 
 ### File Options
 
+#### Standard Directories
 ```swift
-// Documents directory
-.with(file: .document("MyAppFiles"))
+// Documents directory (backed up by iCloud/iTunes)
+.with(file: .document())                           // Uses default folder name
+.with(file: .document("MyAppFiles"))              // Custom folder name
 
-// Library directory
-.with(file: .library("AppLibrary"))
+// Library directory (backed up but hidden from users)
+.with(file: .library())                           // Uses default folder name  
+.with(file: .library("AppLibrary"))              // Custom folder name
 
-// Cache directory
-.with(file: .cache("TempFiles"))
+// Cache directory (may be purged by system when storage is low)
+.with(file: .cache())                             // Uses default folder name
+.with(file: .cache("TempFiles"))                 // Custom folder name
+```
 
-// Custom directory
-.with(file: .file("CustomDir", searchPathDirectory: .applicationSupportDirectory, domainMask: .userDomainMask))
+#### Custom Directories
+```swift
+// Application Support directory
+.with(file: .file("MyData", 
+                   searchPathDirectory: .applicationSupportDirectory, 
+                   domainMask: .userDomainMask))
 
-// Custom file manager
+// Downloads directory
+.with(file: .file("Downloads", 
+                   searchPathDirectory: .downloadsDirectory, 
+                   domainMask: .userDomainMask))
+
+// Desktop directory (macOS)
+.with(file: .file("DesktopFiles", 
+                   searchPathDirectory: .desktopDirectory, 
+                   domainMask: .userDomainMask))
+
+// Movies directory
+.with(file: .file("VideoCache", 
+                   searchPathDirectory: .moviesDirectory, 
+                   domainMask: .userDomainMask))
+
+// Pictures directory
+.with(file: .file("ImageCache", 
+                   searchPathDirectory: .picturesDirectory, 
+                   domainMask: .userDomainMask))
+
+// Shared public directory
+.with(file: .file("PublicData", 
+                   searchPathDirectory: .sharedPublicDirectory, 
+                   domainMask: .localDomainMask))
+```
+
+#### Custom File Manager
+```swift
+// Custom file manager implementation
 .with(file: .custom("myfiles", file: MyCustomFileManager()))
 ```
 
 ### Sync Options
 
+#### No Synchronization
 ```swift
-// No synchronization
+// No synchronization - local storage only
 .with(sync: .noSync())
+```
 
+#### Firebase Synchronization
+```swift
 // Firebase synchronization (requires Firebase SDK)
-#if canImport(FirebaseFirestore)
+#if canImport(FirebaseStorage)
 .with(sync: .firebase())
 #endif
+```
 
+#### Custom Synchronization
+```swift
 // Custom sync implementation
 .with(sync: .custom("mysync", sync: MyCustomSyncManager()))
+
+// Multiple sync implementations
+.with(sync: .custom("mainSync", sync: MainSyncManager()))
+.with(sync: .custom("backupSync", sync: BackupSyncManager()))
+```
+
+### Multiple Manager Configuration Examples
+
+#### Multi-Database Setup
+```swift
+let storage = try FuseStorageBuilder()
+    .with(database: .sqlite("main.db"))                    // Main application data
+    .with(database: .sqlite("cache.db"))                   // Temporary cache
+    .with(database: .sqlite("secure.db", encryptions: EncryptionOptions.high(passphrase: "secret")))  // Encrypted sensitive data
+    .build()
+
+// Access specific databases
+let mainDb = storage.db(.sqlite("main.db"))!
+let cacheDb = storage.db(.sqlite("cache.db"))!
+let secureDb = storage.db(.sqlite("secure.db"))!
+```
+
+#### Multi-Preferences Setup
+```swift
+let storage = try FuseStorageBuilder()
+    .with(preferences: .userDefaults("com.myapp.general"))    // General app settings
+    .with(preferences: .userDefaults("com.myapp.ui"))         // UI preferences
+    .with(preferences: .keychain("com.myapp.auth"))           // Authentication tokens
+    .with(preferences: .keychain("com.myapp.secrets"))        // Sensitive data
+    .build()
+
+// Access specific preference stores
+let generalPrefs = storage.pref(.userDefaults("com.myapp.general"))!
+let uiPrefs = storage.pref(.userDefaults("com.myapp.ui"))!
+let authPrefs = storage.pref(.keychain("com.myapp.auth"))!
+let secretsPrefs = storage.pref(.keychain("com.myapp.secrets"))!
+```
+
+#### Multi-File Storage Setup
+```swift
+let storage = try FuseStorageBuilder()
+    .with(file: .document("UserFiles"))                       // User documents
+    .with(file: .cache("ImageCache"))                         // Cached images
+    .with(file: .library("AppData"))                          // Application data
+    .with(file: .file("Logs", searchPathDirectory: .applicationSupportDirectory, domainMask: .userDomainMask))  // Log files
+    .build()
+
+// Access specific file managers
+let userFiles = storage.file(.document("UserFiles"))!
+let imageCache = storage.file(.cache("ImageCache"))!
+let appData = storage.file(.library("AppData"))!
+let logFiles = storage.file(.file("Logs", searchPathDirectory: .applicationSupportDirectory, domainMask: .userDomainMask))!
+```
+
+### Configuration Best Practices
+
+#### Security Considerations
+```swift
+// For sensitive data - use encrypted database + keychain
+let secureStorage = try FuseStorageBuilder()
+    .with(database: .sqlite("secure.db", encryptions: EncryptionOptions.high(passphrase: generateSecurePassphrase())))
+    .with(preferences: .keychain("com.myapp.secure", accessibility: .whenUnlockedThisDeviceOnly))
+    .build()
+```
+
+#### Performance Optimization
+```swift
+// For high-performance scenarios
+let performanceStorage = try FuseStorageBuilder()
+    .with(database: .sqlite("fast.db", encryptions: EncryptionOptions.performance(passphrase: "key")))
+    .with(file: .cache("FastAccess"))  // Use cache for temporary files
+    .with(sync: .noSync())             // Disable sync for better performance
+    .build()
+```
+
+#### App Extension Sharing
+```swift
+// For sharing data between main app and extensions
+let sharedStorage = try FuseStorageBuilder()
+    .with(database: .sqlite("shared.db"))
+    .with(preferences: .userDefaults("group.com.mycompany.myapp"))  // App group for sharing
+    .with(file: .file("Shared", searchPathDirectory: .applicationSupportDirectory, domainMask: .userDomainMask))
+    .build()
 ```
 
 ## Complete Example
 
-Here's a complete example showing how to use all components together:
-
 ```swift
 import FuseStorageKit
 
-// Create storage instance
+// 1. Configure storage
 let storage = try FuseStorageBuilder()
-    .with(database: .sqlite("notes.db"))
+    .with(database: .sqlite("app.db", encryptions: .standard(passphrase: "secret")))
     .with(preferences: .userDefaults("com.myapp.settings"))
-    .with(file: .document("MyAppFiles"))
-    .with(sync: .noSync())
+    .with(file: .document("AppFiles"))
     .build()
 
-// Get managers
-let dbManager = storage.db(.sqlite("notes.db"))!
-let prefsManager = storage.pref(.userDefaults("com.myapp.settings"))!
-let fileManager = storage.file(.document("MyAppFiles"))!
+// 2. Get managers
+let db = storage.db(.sqlite("app.db"))!
+let prefs = storage.pref(.userDefaults("com.myapp.settings"))!
+let files = storage.file(.document("AppFiles"))!
 
-// 1. Create a note
-let newNote = Note(id: UUID().uuidString, title: "Project Ideas", content: "My ideas...", createdAt: Date())
-try dbManager.add(newNote)
+// 3. Define your data model
+struct User: FuseDatabaseRecord {
+    let id: String
+    let name: String
+    let email: String
+    
+    static var _fuseidField: String = "id"
+    static func tableDefinition() -> FuseTableDefinition {
+        FuseTableDefinition(name: "users", columns: [
+            FuseColumnDefinition(name: "id", type: .text, isPrimaryKey: true, isNotNull: true),
+            FuseColumnDefinition(name: "name", type: .text, isNotNull: true),
+            FuseColumnDefinition(name: "email", type: .text, isNotNull: true)
+        ])
+    }
+    var tableDefinition: FuseTableDefinition { User.tableDefinition() }
+}
 
-// 2. Attach an image
-#if os(iOS) || os(tvOS) || os(watchOS)
-let attachmentImage = UIImage(named: "sketch")!
-#elseif os(macOS)
-let attachmentImage = NSImage(named: "sketch")!
-#endif
-
-let imagePath = "notes/attachments/\(newNote.id).jpg"
-let imageURL = try fileManager.save(image: attachmentImage, fileName: imagePath)
-
-// 3. Update note with attachment info
-var updatedNote = newNote
-updatedNote.hasAttachment = true
-updatedNote.attachmentPath = imagePath
-try dbManager.add(updatedNote)
-
-// 4. Store user preferences
-try prefsManager.set(true, forKey: "showAttachmentsInline")
-
-// 5. Fetch and display
-let allNotes: [Note] = try dbManager.fetch(of: Note.self)
-let showInline: Bool? = prefsManager.get(forKey: "showAttachmentsInline")
+// 4. Use your storage
+try db.createTable(User.tableDefinition())
+try db.add(User(id: "1", name: "John", email: "john@example.com"))
+try prefs.set("dark", forKey: "theme")
+let users: [User] = try db.fetch(of: User.self)
+let theme: String? = prefs.get(forKey: "theme")
 ```
+
+> See **[USAGE.md](USAGE.md)** for detailed examples and advanced patterns.
 
 ## Requirements
 
@@ -470,23 +452,30 @@ let showInline: Bool? = prefsManager.get(forKey: "showAttachmentsInline")
 - **GRDB.swift with SQLCipher**: Database functionality with encryption via [duckduckgo/GRDB.swift](https://github.com/duckduckgo/GRDB.swift)
 - **Firebase iOS SDK**: Sync functionality via [firebase/firebase-ios-sdk](https://github.com/firebase/firebase-ios-sdk) (optional)
 
-## Key Features
+## Documentation
 
-FuseStorageKit provides a unified storage solution with the following capabilities:
+- **[USAGE.md](USAGE.md)** - Complete API reference with all protocols, classes, and patterns
+- **[Example App](FuseStorageKitExample/)** - Real-world usage examples
+- **[Tests](Tests/)** - Comprehensive test suite demonstrating all features
 
-- **Standard SQLite**: High-performance local database storage
-- **Database Encryption**: Enterprise-grade AES-256 encryption via SQLCipher
-- **File Management**: Structured file system operations
-- **Preferences Storage**: Type-safe settings and configuration management
-- **Cloud Sync**: Optional Firebase integration for remote synchronization
-- **Modular Architecture**: Extensible design with custom implementations
+## Core Architecture
 
-## Limitations
+**Protocols**: `FuseManageable`, `FuseDatabaseManageable`, `FuseFileManageable`, `FusePreferencesManageable`, `FuseSyncManageable`
 
-- Models must conform to `FuseDatabaseRecord` protocol when using default GRDB managers
-- Thread safety varies by component (database managers are thread-safe, file managers require external synchronization)
-- Database migrations are handled by the underlying GRDB implementation
-- Error handling and sync conflict resolution depend on the specific implementations used
+**Classes**: `FuseStorageBuilder`, `FuseStorage`, `FuseDatabaseManager`, `FuseFileManager`, `FuseUserDefaultsManager`, `FuseKeychainManager`
+
+**Models**: `FuseTableDefinition`, `FuseColumnDefinition`, `FuseQueryFilter`, `FuseQuerySort`, `EncryptionOptions`
+
+## Capabilities
+
+✅ SQLite database with GRDB  
+✅ AES-256 encryption via SQLCipher  
+✅ UserDefaults and Keychain storage  
+✅ File system operations  
+✅ Firebase sync (optional)  
+✅ Multiple manager instances  
+✅ Cross-platform support  
+✅ Type-safe Codable integration  
 
 ## License
 

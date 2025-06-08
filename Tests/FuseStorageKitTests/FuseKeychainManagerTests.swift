@@ -6,6 +6,7 @@
 //
 
 import XCTest
+@testable import FuseStorageCore
 @testable import FuseStorageKit
 
 // MARK: - Memory Mock Backend

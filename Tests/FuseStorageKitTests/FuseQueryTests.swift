@@ -1,15 +1,17 @@
 import XCTest
-@testable import FuseStorageKit // Assuming your module is named FuseStorageKit
-import GRDB // For DatabaseValueConvertible
+@testable import FuseStorageCore
+@testable import FuseStorageKit  // This will also import FuseStorageCore
 
-// Helper to compare DatabaseValueConvertible arrays
-// This is needed because DatabaseValueConvertible is a protocol, and direct comparison of arrays of protocol types might not work as expected.
-// We compare the underlying database values.
-func XCTAssertEqualDBValues(_ expression1: [DatabaseValueConvertible], _ expression2: [DatabaseValueConvertible], _ message: @autoclosure () -> String = "", file: StaticString = #filePath, line: UInt = #line) {
+// Helper to compare FuseDatabaseValueConvertible arrays
+// This compares the underlying values by converting them to their database representations
+func XCTAssertEqualDBValues<T: Collection, U: Collection>(_ expression1: T, _ expression2: U, _ message: @autoclosure () -> String = "", file: StaticString = #filePath, line: UInt = #line) 
+where T.Element == FuseDatabaseValueConvertible, U.Element == FuseDatabaseValueConvertible {
     XCTAssertEqual(expression1.count, expression2.count, "Array counts differ. \(message())", file: file, line: line)
     for (v1, v2) in zip(expression1, expression2) {
-        // Comparing the 'databaseValue' property which gives a storable representation.
-        XCTAssertEqual(v1.databaseValue, v2.databaseValue, "Values differ: \(v1.databaseValue) vs \(v2.databaseValue). \(message())", file: file, line: line)
+        // Compare the underlying values using string representation for simplicity
+        let value1 = String(describing: v1.fuseDatabaseValue)
+        let value2 = String(describing: v2.fuseDatabaseValue)
+        XCTAssertEqual(value1, value2, "Values differ: \(value1) vs \(value2). \(message())", file: file, line: line)
     }
 }
 
@@ -101,9 +103,6 @@ class FuseQuerySortTests: XCTestCase {
     }
 }
 
-// Assuming FuseDatabaseValueConvertible is effectively DatabaseValueConvertible for testing purposes
-typealias FuseDatabaseValueConvertible = GRDB.DatabaseValueConvertible 
-
 class FuseQueryTests: XCTestCase {
 
     func testBuildSelectAll() {
@@ -192,7 +191,7 @@ class FuseQueryTests: XCTestCase {
         // For expectation, sort the keys of the initialValues dictionary.
         let expectedSortedKeys = initialValues.keys.sorted() 
         let expectedSQL = "INSERT INTO users (\(expectedSortedKeys.joined(separator: ", "))) VALUES (?, ?, ?)"
-        let expectedArgs: [DatabaseValueConvertible] = expectedSortedKeys.map { (initialValues[$0]!) ?? NSNull() }
+        let expectedArgs: [FuseDatabaseValueConvertible] = expectedSortedKeys.map { (initialValues[$0]!) ?? NSNull() }
 
         XCTAssertEqual(sql, expectedSQL)
         XCTAssertEqualDBValues(args, expectedArgs)
@@ -209,7 +208,7 @@ class FuseQueryTests: XCTestCase {
         // For expectation, sort the keys of the initialValues dictionary.
         let expectedSortedKeys = initialValues.keys.sorted()
         let expectedSQL = "INSERT INTO employees (\(expectedSortedKeys.joined(separator: ", "))) VALUES (?, ?)"
-        let expectedArgs: [DatabaseValueConvertible] = expectedSortedKeys.map { (initialValues[$0]!) ?? NSNull() }
+        let expectedArgs: [FuseDatabaseValueConvertible] = expectedSortedKeys.map { (initialValues[$0]!) ?? NSNull() }
         
         XCTAssertEqual(sql, expectedSQL)
         XCTAssertEqualDBValues(args, expectedArgs)
@@ -226,8 +225,8 @@ class FuseQueryTests: XCTestCase {
         let setClauses = expectedSortedKeys.map { "\($0) = ?" }.joined(separator: ", ")
         let expectedSQL = "UPDATE tasks SET \(setClauses) WHERE id = ?"
         
-        let expectedArgsPrefix: [DatabaseValueConvertible] = expectedSortedKeys.map { (initialValues[$0]!) ?? NSNull() }
-        let expectedArgs = expectedArgsPrefix + ["uuid-123" as DatabaseValueConvertible]
+        let expectedArgsPrefix: [FuseDatabaseValueConvertible] = expectedSortedKeys.map { (initialValues[$0]!) ?? NSNull() }
+        let expectedArgs = expectedArgsPrefix + ["uuid-123" as FuseDatabaseValueConvertible]
 
         XCTAssertEqual(sql, expectedSQL)
         XCTAssertEqualDBValues(args, expectedArgs)
@@ -278,7 +277,7 @@ class FuseQueryTests: XCTestCase {
             .joined(separator: ", ")
 
         let expectedSQL = "INSERT INTO inventory (\(cols)) VALUES (\(placeholders)) ON CONFLICT(\(conflictList)) DO UPDATE SET \(expectedUpdateClause)"
-        let expectedArgs: [DatabaseValueConvertible] = expectedSortedValueKeys.map { (initialValues[$0]!) ?? NSNull() }
+        let expectedArgs: [FuseDatabaseValueConvertible] = expectedSortedValueKeys.map { (initialValues[$0]!) ?? NSNull() }
 
         XCTAssertEqual(sql, expectedSQL)
         XCTAssertEqualDBValues(args, expectedArgs)
@@ -301,7 +300,7 @@ class FuseQueryTests: XCTestCase {
         let expectedUpdateClause = updateCols.sorted().map { "\($0) = excluded.\($0)" }.joined(separator: ", ")
 
         let expectedSQL = "INSERT INTO catalog (\(cols)) VALUES (\(placeholders)) ON CONFLICT(\(conflictList)) DO UPDATE SET \(expectedUpdateClause)"
-        let expectedArgs: [DatabaseValueConvertible] = expectedSortedValueKeys.map { (initialValues[$0]!) ?? NSNull() }
+        let expectedArgs: [FuseDatabaseValueConvertible] = expectedSortedValueKeys.map { (initialValues[$0]!) ?? NSNull() }
 
         XCTAssertEqual(sql, expectedSQL)
         XCTAssertEqualDBValues(args, expectedArgs)
@@ -325,7 +324,7 @@ class FuseQueryTests: XCTestCase {
             .joined(separator: ", ")
 
         let expectedSQL = "INSERT INTO settings (\(cols)) VALUES (\(placeholders)) ON CONFLICT(\(conflictList)) DO UPDATE SET \(expectedUpdateClause)"
-        let expectedArgs: [DatabaseValueConvertible] = expectedSortedValueKeys.map { (initialValues[$0]!) ?? NSNull() }
+        let expectedArgs: [FuseDatabaseValueConvertible] = expectedSortedValueKeys.map { (initialValues[$0]!) ?? NSNull() }
 
         XCTAssertEqual(sql, expectedSQL)
         XCTAssertEqualDBValues(args, expectedArgs)

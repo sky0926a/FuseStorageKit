@@ -15,7 +15,7 @@ final class FuseStorageTests: XCTestCase {
         
         // 使用預設的 UserDefaults preferences manager
         let preferencesQuery = FusePreferencesBuilderOption.userDefaults()
-        guard let preferencesManager = try kit.pref(preferencesQuery) else {
+        guard let preferencesManager = kit.pref(preferencesQuery) else {
             XCTFail("無法取得 preferences manager")
             return
         }

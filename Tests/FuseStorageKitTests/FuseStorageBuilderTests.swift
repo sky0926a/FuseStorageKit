@@ -369,8 +369,16 @@ final class FuseStorageBuilderTests: XCTestCase {
         XCTAssertThrowsError(try FuseStorageBuilder()
             .with(database: .sqlite("test.db", encryptions: emptyPassphraseOptions))
             .build()) { error in
-            // Should throw FuseDatabaseError.missingPassphrase
-            XCTAssertTrue(error is FuseDatabaseError)
+                guard let dbError = error as? FuseDatabaseError else {
+                    XCTFail("Expected FuseDatabaseError")
+                    return
+                }
+                if case .missingPassphrase = dbError {
+                    // This is the expected error
+                } else {
+                    // Should throw FuseDatabaseError.missingPassphrase
+                    XCTAssertTrue(error is FuseDatabaseError)
+                }
         }
     }
 

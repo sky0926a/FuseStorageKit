@@ -1,5 +1,4 @@
 import Foundation
-import GRDB
 
 /// Defines the supported column types for database tables
 public enum FuseColumnType {
@@ -21,22 +20,35 @@ public enum FuseColumnType {
     case numeric
     /// Any data type, allowing any kind of data
     case any
-    /// Custom SQL type for specialized data storage
-    case custom(String)
-
+    
     /// Returns the SQL type string for this column type
     public var sqlType: String {
         switch self {
-        case .text:    return "TEXT"
-        case .integer: return "INTEGER"
-        case .real:    return "REAL"
-        case .boolean: return "BOOLEAN"
-        case .date:    return "DATETIME"
-        case .blob:    return "BLOB"
-        case .double:  return "DOUBLE"
-        case .numeric: return "NUMERIC"
-        case .any:     return "ANY"
-        case .custom(let t): return t
+            case .text:    return "TEXT"
+            case .integer: return "INTEGER"
+            case .real:    return "REAL"
+            case .boolean: return "BOOLEAN"
+            case .date:    return "DATETIME"
+            case .blob:    return "BLOB"
+            case .double:  return "DOUBLE"
+            case .numeric: return "NUMERIC"
+            case .any:     return "ANY"
+        }
+    }
+    
+    public static func sqlType(_ type: String) -> FuseColumnType {
+        switch type.uppercased() {
+            case let t where t.contains("TEXT"): return .text
+            case let t where t.contains("INTEGER"): return .integer
+            case let t where t.contains("REAL"): return .real
+            case let t where t.contains("DOUBLE"): return .double
+            case let t where t.contains("NUMERIC"): return .numeric
+            case let t where t.contains("BOOLEAN"): return .boolean
+            case let t where t.contains("DATE"): return .date
+            case let t where t.contains("DATETIME"): return .date
+            case let t where t.contains("BLOB"): return .blob
+            case let t where t.contains("ANY"): return .any
+            default: return .text
         }
     }
 }
@@ -55,7 +67,7 @@ public struct FuseColumnDefinition {
     public let isUnique: Bool
     /// The default value for this column, if any
     public let defaultValue: FuseDatabaseValueConvertible?
-
+    
     /// Creates a new column definition
     /// - Parameters:
     ///   - name: The name of the column

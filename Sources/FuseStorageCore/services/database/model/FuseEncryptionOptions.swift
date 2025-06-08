@@ -1,5 +1,4 @@
 import Foundation
-import GRDB
 
 /// Configuration options for database encryption using SQLCipher
 /// 
@@ -8,13 +7,12 @@ import GRDB
 /// security options. It supports both custom configuration and preset security levels.
 public struct EncryptionOptions {
     // MARK: - Properties
-    internal var passphrase: String
-    private var pageSize: Int?
-    private var kdfIter: Int?
-    private var memorySecurity: Bool?
-    private var defaultKdfIter: Int?
-    private var defaultPageSize: Int?
-
+    public let passphrase: String
+    public let pageSize: Int?
+    public let kdfIter: Int?
+    public let memorySecurity: Bool?
+    public let defaultKdfIter: Int?
+    public let defaultPageSize: Int?
 
     // MARK: - Initializer
     /// Initializes encryption options with a passphrase
@@ -27,15 +25,37 @@ public struct EncryptionOptions {
         self.defaultKdfIter = nil
         self.defaultPageSize = nil
     }
+    
+    /// Private initializer for creating configured instances
+    private init(
+        passphrase: String,
+        pageSize: Int?,
+        kdfIter: Int?,
+        memorySecurity: Bool?,
+        defaultKdfIter: Int?,
+        defaultPageSize: Int?
+    ) {
+        self.passphrase = passphrase
+        self.pageSize = pageSize
+        self.kdfIter = kdfIter
+        self.memorySecurity = memorySecurity
+        self.defaultKdfIter = defaultKdfIter
+        self.defaultPageSize = defaultPageSize
+    }
 
     /// Sets the page size for the encrypted database
     /// - Parameter value: Page size (typical values: 1024, 2048, 4096)
     /// - Returns: Updated EncryptionOptions
     @discardableResult
     public func pageSize(_ value: Int) -> Self {
-        var copy = self
-        copy.pageSize = value
-        return copy
+        return EncryptionOptions(
+            passphrase: passphrase,
+            pageSize: value,
+            kdfIter: kdfIter,
+            memorySecurity: memorySecurity,
+            defaultKdfIter: defaultKdfIter,
+            defaultPageSize: defaultPageSize
+        )
     }
 
     /// Sets the KDF iteration count for the encryption
@@ -43,9 +63,14 @@ public struct EncryptionOptions {
     /// - Returns: Updated EncryptionOptions
     @discardableResult
     public func kdfIter(_ value: Int) -> Self {
-        var copy = self
-        copy.kdfIter = value
-        return copy
+        return EncryptionOptions(
+            passphrase: passphrase,
+            pageSize: pageSize,
+            kdfIter: value,
+            memorySecurity: memorySecurity,
+            defaultKdfIter: defaultKdfIter,
+            defaultPageSize: defaultPageSize
+        )
     }
 
     /// Enables or disables memory security
@@ -53,9 +78,14 @@ public struct EncryptionOptions {
     /// - Returns: Updated EncryptionOptions
     @discardableResult
     public func memorySecurity(_ value: Bool) -> Self {
-        var copy = self
-        copy.memorySecurity = value
-        return copy
+        return EncryptionOptions(
+            passphrase: passphrase,
+            pageSize: pageSize,
+            kdfIter: kdfIter,
+            memorySecurity: value,
+            defaultKdfIter: defaultKdfIter,
+            defaultPageSize: defaultPageSize
+        )
     }
 
     /// Sets the default KDF iteration count for new databases
@@ -63,9 +93,14 @@ public struct EncryptionOptions {
     /// - Returns: Updated EncryptionOptions
     @discardableResult
     public func defaultKdfIter(_ value: Int) -> Self {
-        var copy = self
-        copy.defaultKdfIter = value
-        return copy
+        return EncryptionOptions(
+            passphrase: passphrase,
+            pageSize: pageSize,
+            kdfIter: kdfIter,
+            memorySecurity: memorySecurity,
+            defaultKdfIter: value,
+            defaultPageSize: defaultPageSize
+        )
     }
 
     /// Sets the default page size for new databases
@@ -73,43 +108,19 @@ public struct EncryptionOptions {
     /// - Returns: Updated EncryptionOptions
     @discardableResult
     public func defaultPageSize(_ value: Int) -> Self {
-        var copy = self
-        copy.defaultPageSize = value
-        return copy
-    }
-
-    // MARK: - Apply PRAGMA settings
-    /// Applies encryption settings to the database
-    /// - Parameter db: The database to apply settings to
-    /// - Throws: Database errors if encryption cannot be applied
-    func apply(to db: Database) throws {
-        // Enforce passphrase as required
-        guard !passphrase.isEmpty else {
-            throw FuseDatabaseError.missingPassphrase
-        }
-        
-        try db.usePassphrase(passphrase)
-
-        if let pageSize = pageSize {
-            try db.execute(sql: "PRAGMA cipher_page_size = \(pageSize)")
-        }
-        if let kdfIter = kdfIter {
-            try db.execute(sql: "PRAGMA kdf_iter = \(kdfIter)")
-        }
-        if memorySecurity == true {
-            try db.execute(sql: "PRAGMA cipher_memory_security = ON")
-        }
-        if let defaultKdf = defaultKdfIter {
-            try db.execute(sql: "PRAGMA cipher_default_kdf_iter = \(defaultKdf)")
-        }
-        if let defaultPage = defaultPageSize {
-            try db.execute(sql: "PRAGMA cipher_default_page_size = \(defaultPage)")
-        }
+        return EncryptionOptions(
+            passphrase: passphrase,
+            pageSize: pageSize,
+            kdfIter: kdfIter,
+            memorySecurity: memorySecurity,
+            defaultKdfIter: defaultKdfIter,
+            defaultPageSize: value
+        )
     }
 }
 
 extension EncryptionOptions {
-        // MARK: - Preset configurations
+    // MARK: - Preset configurations
     /// Standard: balanced security and performance.
     ///
     /// - passphrase: required user-provided key.

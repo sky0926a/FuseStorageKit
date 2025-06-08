@@ -1,8 +1,9 @@
 import Foundation
 import FuseStorageKit
 
-// 實現 FuseDatabaseRecord 協議
-struct Note: FuseDatabaseRecord, Identifiable {
+// 🎉 簡化的實作：用戶只需要實現 FuseDatabaseRecord
+// SDK 自動提供 GRDB 的 FetchableRecord 和 PersistableRecord 符合性
+struct Note: FuseDatabaseRecord {
     static var _fuseidField: String = "id"
     
     var id: String
@@ -26,11 +27,12 @@ struct Note: FuseDatabaseRecord, Identifiable {
         self.attachmentPath = attachmentPath
     }
     
-    // FuseDatabaseRecord 協議已經繼承自 Codable, FetchableRecord, PersistableRecord
-    // 因此這些屬性會自動對應到資料庫中的欄位
-    // 但我們需要一些常量用於查詢
+    static var databaseTableName: String { return "notes" }
     
-    static let databaseTableName = "notes"
+    /// Table definition for this record type, providing type information for proper encode/decode operations
+    var tableDefinition: FuseTableDefinition {
+        return Note.tableDefinition()
+    }
     
     // 欄位名稱定義，方便在代碼中使用
     enum Field {
@@ -61,4 +63,4 @@ struct Note: FuseDatabaseRecord, Identifiable {
             columns: columns
         )
     }
-} 
+}

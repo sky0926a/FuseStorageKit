@@ -7,9 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		BFDFECB42DCE589C00435320 /* FuseStorageKit in Frameworks */ = {isa = PBXBuildFile; productRef = C5A6B0012DFB87DE00F5AF37 /* FuseStorageKit */; };
-		BFDFECB52DCE589C00435320 /* FuseStorageKit in Frameworks */ = {isa = PBXBuildFile; productRef = C5A6B0032DFB882F00F5AF37 /* FuseStorageKit */; };
-		BFDFECB62DCE589C00435320 /* FuseStorageKit in Frameworks */ = {isa = PBXBuildFile; productRef = C5A6B0042DFB883500F5AF37 /* FuseStorageKit */; };
+		BFF443BF2DF5DD760036E491 /* FuseStorageKit in Frameworks */ = {isa = PBXBuildFile; productRef = BFF443BE2DF5DD760036E491 /* FuseStorageKit */; };
+		BFF443C12DF5DD7C0036E491 /* FuseStorageKit in Frameworks */ = {isa = PBXBuildFile; productRef = BFF443C02DF5DD7C0036E491 /* FuseStorageKit */; };
+		BFF443C32DF5DD820036E491 /* FuseStorageKit in Frameworks */ = {isa = PBXBuildFile; productRef = BFF443C22DF5DD820036E491 /* FuseStorageKit */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -58,7 +58,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				BFDFECB42DCE589C00435320 /* FuseStorageKit in Frameworks */,
+				BFF443BF2DF5DD760036E491 /* FuseStorageKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -66,7 +66,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				BFDFECB52DCE589C00435320 /* FuseStorageKit in Frameworks */,
+				BFF443C12DF5DD7C0036E491 /* FuseStorageKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -74,7 +74,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				BFDFECB62DCE589C00435320 /* FuseStorageKit in Frameworks */,
+				BFF443C32DF5DD820036E491 /* FuseStorageKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -87,6 +87,7 @@
 				BF0DEA902DCE0161008D981F /* FuseStorageKitExample */,
 				BF0DEAA12DCE0163008D981F /* FuseStorageKitExampleTests */,
 				BF0DEAAB2DCE0163008D981F /* FuseStorageKitExampleUITests */,
+				BF93C43D2DEF6341000EBCCC /* Frameworks */,
 				BF0DEA8F2DCE0161008D981F /* Products */,
 			);
 			sourceTree = "<group>";
@@ -99,6 +100,13 @@
 				BF0DEAA82DCE0163008D981F /* FuseStorageKitExampleUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		BF93C43D2DEF6341000EBCCC /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -121,7 +129,7 @@
 			);
 			name = FuseStorageKitExample;
 			packageProductDependencies = (
-				C5A6B0012DFB87DE00F5AF37 /* FuseStorageKit */,
+				BFF443BE2DF5DD760036E491 /* FuseStorageKit */,
 			);
 			productName = FuseStorageKitExample;
 			productReference = BF0DEA8E2DCE0161008D981F /* FuseStorageKitExample.app */;
@@ -145,7 +153,7 @@
 			);
 			name = FuseStorageKitExampleTests;
 			packageProductDependencies = (
-				C5A6B0032DFB882F00F5AF37 /* FuseStorageKit */,
+				BFF443C02DF5DD7C0036E491 /* FuseStorageKit */,
 			);
 			productName = FuseStorageKitExampleTests;
 			productReference = BF0DEA9E2DCE0163008D981F /* FuseStorageKitExampleTests.xctest */;
@@ -169,7 +177,7 @@
 			);
 			name = FuseStorageKitExampleUITests;
 			packageProductDependencies = (
-				C5A6B0042DFB883500F5AF37 /* FuseStorageKit */,
+				BFF443C22DF5DD820036E491 /* FuseStorageKit */,
 			);
 			productName = FuseStorageKitExampleUITests;
 			productReference = BF0DEAA82DCE0163008D981F /* FuseStorageKitExampleUITests.xctest */;
@@ -208,7 +216,7 @@
 			mainGroup = BF0DEA852DCE0161008D981F;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				C5A6B0002DFB87DE00F5AF37 /* XCLocalSwiftPackageReference ".." */,
+				BF93C3B12DE8588A000EBCCC /* XCLocalSwiftPackageReference "../../FuseStorageKit" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = BF0DEA8F2DCE0161008D981F /* Products */;
@@ -583,23 +591,26 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		C5A6B0002DFB87DE00F5AF37 /* XCLocalSwiftPackageReference ".." */ = {
+		BF93C3B12DE8588A000EBCCC /* XCLocalSwiftPackageReference "../../FuseStorageKit" */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = ..;
+			relativePath = ../../FuseStorageKit;
 		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		C5A6B0012DFB87DE00F5AF37 /* FuseStorageKit */ = {
+		BFF443BE2DF5DD760036E491 /* FuseStorageKit */ = {
 			isa = XCSwiftPackageProductDependency;
+			package = BF93C3B12DE8588A000EBCCC /* XCLocalSwiftPackageReference "../../FuseStorageKit" */;
 			productName = FuseStorageKit;
 		};
-		C5A6B0032DFB882F00F5AF37 /* FuseStorageKit */ = {
+		BFF443C02DF5DD7C0036E491 /* FuseStorageKit */ = {
 			isa = XCSwiftPackageProductDependency;
+			package = BF93C3B12DE8588A000EBCCC /* XCLocalSwiftPackageReference "../../FuseStorageKit" */;
 			productName = FuseStorageKit;
 		};
-		C5A6B0042DFB883500F5AF37 /* FuseStorageKit */ = {
+		BFF443C22DF5DD820036E491 /* FuseStorageKit */ = {
 			isa = XCSwiftPackageProductDependency;
+			package = BF93C3B12DE8588A000EBCCC /* XCLocalSwiftPackageReference "../../FuseStorageKit" */;
 			productName = FuseStorageKit;
 		};
 /* End XCSwiftPackageProductDependency section */

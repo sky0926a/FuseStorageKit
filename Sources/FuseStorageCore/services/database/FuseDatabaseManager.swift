@@ -1,10 +1,9 @@
 import Foundation
-import GRDB
 
-/// A concrete implementation of `FuseDatabaseManageable` protocol using GRDB as the underlying database engine.
-/// This class provides a robust and type-safe interface for SQLite database operations.
+/// A concrete implementation of `FuseDatabaseManageable` protocol using dependency injection.
+/// This class provides a robust and type-safe interface for database operations without directly depending on GRDB.
 public final class FuseDatabaseManager: FuseDatabaseManageable {
-    private let dbQueue: DatabaseQueue
+    private let dbQueue: FuseDatabaseQueueProtocol
 
     /// Initializes a new database manager with a specified SQLite file path.
     /// - Parameters:
@@ -12,22 +11,26 @@ public final class FuseDatabaseManager: FuseDatabaseManageable {
     ///   - encryptions: Optional encryption options for database encryption. If provided, SQLCipher will be used to encrypt the database.
     /// - Throws: Database initialization errors if the file cannot be created or accessed
     public init(path: String = "fuse.sqlite", encryptions: EncryptionOptions? = nil) throws {
+        // Ensure database modules are initialized before proceeding
+        
+        
+        // Get factory from the unified registry
+        guard let factory = FuseDatabaseFactoryRegistry.shared.mainFactory() else {
+            throw FuseDatabaseError.noFactoryInjected
+        }
+        
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         let url = docs.appendingPathComponent(path)
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
 
-        var configuration = Configuration()
-        if let encryptions = encryptions {
-            configuration.prepareDatabase { db in
-                try encryptions.apply(to: db)
-            }
-        }
-        self.dbQueue = try DatabaseQueue(path: url.path, configuration: configuration)
+        // Create database queue
+        self.dbQueue = try factory.createDatabaseQueue(path: url.path, encryptionOptions: encryptions)
     }
 
     /// Initializes a database manager with an existing database queue.
-    /// - Parameter dbQueue: An existing `DatabaseQueue` instance
-    init(dbQueue: DatabaseQueue) {
+    /// - Parameter dbQueue: An existing `FuseDatabaseQueueProtocol` instance
+    public init(dbQueue: FuseDatabaseQueueProtocol) throws {
+        // Ensure database modules are initialized before proceeding
         self.dbQueue = dbQueue
     }
 
@@ -54,20 +57,24 @@ public final class FuseDatabaseManager: FuseDatabaseManageable {
                 throw FuseDatabaseError.tableAlreadyExists(definition.name)
             }
             
-            var options: GRDB.TableOptions = []
-            if definition.options.contains(.ifNotExists)  { options.insert(.ifNotExists) }
-            if definition.options.contains(.temporary)    { options.insert(.temporary) }
-            if definition.options.contains(.withoutRowID) { options.insert(.withoutRowID) }
-            if #available(iOS 15.4, *) {
-                if definition.options.contains(.strict) { options.insert(.strict) }
+            var options: [String] = []
+            if definition.options.contains(.ifNotExists)  { options.append("ifNotExists") }
+            if definition.options.contains(.temporary)    { options.append("temporary") }
+            if definition.options.contains(.withoutRowID) { options.append("withoutRowID") }
+            if #available(iOS 15.4, macOS 12.4, *) {
+                if definition.options.contains(.strict) { options.append("strict") }
             }
+            
             try db.create(table: definition.name, options: options) { t in
                 for colDef in definition.columns {
-                    var b = t.column(colDef.name, mapToDBColumnType(colDef.type)!)
-                    if colDef.isPrimaryKey { b = b.primaryKey() }
-                    if colDef.isNotNull   { b = b.notNull() }
-                    if colDef.isUnique    { b = b.unique() }
-                    if let def = colDef.defaultValue { b = b.defaults(to: def) }
+                    try t.column(
+                        colDef.name,
+                        colDef.type.sqlType,
+                        isPrimaryKey: colDef.isPrimaryKey,
+                        isNotNull: colDef.isNotNull,
+                        isUnique: colDef.isUnique,
+                        defaultValue: colDef.defaultValue
+                    )
                 }
             }
         }
@@ -179,8 +186,7 @@ public final class FuseDatabaseManager: FuseDatabaseManageable {
         return try dbQueue.read { db in
             let (sql, args) = query.build()
             
-            let request = try T.fetchAll(db, sql: sql, arguments: StatementArguments(args))
-            return request
+            return try T.fetchAll(db, sql: sql, arguments: FuseStatementArguments(args))
         }
     }
 
@@ -191,8 +197,7 @@ public final class FuseDatabaseManager: FuseDatabaseManageable {
     /// - Throws: Database operation errors if the query fails
     public func read<T: FuseDatabaseRecord>(_ sql: String, arguments: some Sequence<(any FuseDatabaseValueConvertible)?>) throws -> [T] {
         return try dbQueue.read { db in
-            let request = try T.fetchAll(db, sql: sql, arguments: StatementArguments(arguments))
-            return request
+            return try T.fetchAll(db, sql: sql, arguments: FuseStatementArguments(arguments))
         }
     }
 
@@ -202,7 +207,7 @@ public final class FuseDatabaseManager: FuseDatabaseManageable {
     public func write(_ query: FuseQuery) throws {
         let (sql, args) = query.build()
         try dbQueue.write { db in
-            try db.execute(sql: sql, arguments: StatementArguments(args))
+            try db.execute(sql: sql, arguments: FuseStatementArguments(args))
         }
     }
 
@@ -212,38 +217,20 @@ public final class FuseDatabaseManager: FuseDatabaseManageable {
     /// - Throws: Database operation errors if the write operation fails
     public func write(_ sql: String, arguments: some Sequence<(any FuseDatabaseValueConvertible)?>) throws {
         try dbQueue.write { db in
-            try db.execute(sql: sql, arguments: StatementArguments(arguments))
+            try db.execute(sql: sql, arguments: FuseStatementArguments(arguments))
         }
     }
-
-    // MARK: - Helpers
-    private func convertToDBColumnType(_ sqlType: String) -> Database.ColumnType? {
-        let up = sqlType.uppercased()
-        if up.contains("TEXT")     { return .text }
-        if up.contains("INTEGER")  { return .integer }
-        if up.contains("REAL")     { return .real }
-        if up.contains("DOUBLE")   { return .double }
-        if up.contains("NUMERIC")  { return .numeric }
-        if up.contains("BOOLEAN")  { return .boolean }
-        if up.contains("DATE")     { return .date }
-        if up.contains("DATETIME") { return .datetime }
-        if up.contains("BLOB")     { return .blob }
-        if up.contains("ANY")      { return .any }
-        return .text
-    }
-
-    private func mapToDBColumnType(_ type: FuseColumnType) -> Database.ColumnType? {
-        switch type {
-        case .text:    return .text
-        case .integer: return .integer
-        case .real:    return .real
-        case .boolean: return .boolean
-        case .date:    return .datetime
-        case .blob:    return .blob
-        case .double:  return .double
-        case .numeric: return .numeric
-        case .any:     return .any
-        case .custom(let s): return convertToDBColumnType(s)
+    
+    // MARK: - Debug/Testing Methods
+    
+    /// Executes a SELECT query and returns raw database rows for debugging/testing purposes.
+    /// - Parameter sql: The SQL query to execute
+    /// - Parameter arguments: The arguments to pass to the SQL query
+    /// - Returns: Array of raw database rows
+    /// - Throws: Database operation errors if the query fails
+    public func debugFetchRows(_ sql: String, arguments: [FuseDatabaseValueConvertible] = []) throws -> [FuseDatabaseRow] {
+        return try dbQueue.read { db in
+            try db.fetchRows(sql: sql, arguments: FuseStatementArguments(arguments))
         }
     }
 }

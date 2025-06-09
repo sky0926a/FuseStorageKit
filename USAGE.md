@@ -197,6 +197,11 @@ struct User: FuseDatabaseRecord {
         ]
         return FuseTableDefinition(name: "users", columns: columns)
     }
+    
+    // The protocol now requires both toDatabaseValues() and fromDatabase()
+    // Both methods use tableDefinition() for direct type conversion:
+    // - toDatabaseValues(): Swift Object → tableDefinition → Database Values
+    // - fromDatabase(): Database Row → FuseColumnType → Direct Cast → Swift Object
 }
 ```
 
@@ -536,6 +541,26 @@ public final class FuseStorage {
 }
 ```
 
+### FuseDatabaseRecord Protocol Methods
+
+```swift
+public protocol FuseDatabaseRecord: Codable, Identifiable, FuseFetchableRecord, FusePersistableRecord {
+    /// The table definition for this record type
+    static func tableDefinition() -> FuseTableDefinition
+    
+    /// Convert record to database values using tableDefinition for type-safe conversion
+    /// - Returns: Dictionary mapping column names to database-compatible values
+    func toDatabaseValues() -> [String: FuseDatabaseValueConvertible?]
+    
+    /// Create record from database row using tableDefinition for direct type conversion
+    /// This method directly converts database values based on FuseColumnType without JSON encoding/decoding
+    /// - Parameter row: Database row containing the record data
+    /// - Returns: New instance of the record type with directly converted values
+    /// - Throws: DecodingError if direct type conversion fails
+    static func fromDatabase(row: FuseDatabaseRow) throws -> Self
+}
+```
+
 ### Builder Options
 
 ```swift
@@ -688,7 +713,66 @@ enum StorageError: Error {
 }
 ```
 
-### 4. Test-Friendly Design
+### 4. TableDefinition Consistency and Direct Type Conversion
+
+```swift
+// ✅ Critical: Ensure tableDefinition accurately reflects your Swift model
+// The new direct type conversion system relies on FuseColumnType for efficient casting
+struct User: FuseDatabaseRecord {
+    let id: String
+    let isActive: Bool
+    let age: Int64
+    let createdAt: Date
+    
+    static func tableDefinition() -> FuseTableDefinition {
+        return FuseTableDefinition(name: "users", columns: [
+            // ✅ Correct: Types match Swift properties for direct conversion
+            FuseColumnDefinition(name: "id", type: .text, isPrimaryKey: true),         // String ← .text
+            FuseColumnDefinition(name: "isActive", type: .boolean, isNotNull: true),   // Bool ← .boolean (0/1)
+            FuseColumnDefinition(name: "age", type: .integer, isNotNull: true),        // Int64 ← .integer
+            FuseColumnDefinition(name: "createdAt", type: .date, isNotNull: true)      // Date ← .date (timestamp)
+            
+            // ❌ Wrong examples that will cause direct conversion failures:
+            // FuseColumnDefinition(name: "isActive", type: .text)    // Should be .boolean for Bool
+            // FuseColumnDefinition(name: "age", type: .text)         // Should be .integer for Int64
+            // FuseColumnDefinition(name: "createdAt", type: .text)   // Should be .date for Date
+        ])
+    }
+    
+    // Both toDatabaseValues() and fromDatabase() now use tableDefinition for:
+    // - toDatabaseValues(): Swift types → database-compatible values
+    // - fromDatabase(): Database values → direct cast via FuseColumnType → Swift types
+    // This eliminates JSON encoding/decoding overhead for better performance!
+}
+```
+
+#### Direct Type Conversion Benefits
+
+The new `fromDatabase` implementation provides several key improvements:
+
+**🚀 Performance Improvements:**
+- Direct casting based on `FuseColumnType` instead of JSON encode/decode
+- Eliminates unnecessary serialization overhead
+- Faster object reconstruction from database rows
+
+**🎯 Type Safety:**
+- Precise error messages indicating which column and type failed
+- Early error detection during type conversion phase
+- More predictable conversion behavior
+
+**💡 Smart Type Handling:**
+```swift
+// Examples of direct type conversion:
+.boolean → Database 0/1 directly cast to Swift Bool
+.integer → Database Int64 directly cast to Swift Int64  
+.double  → Database Double directly cast to Swift Double
+.date    → Database timestamp directly cast to Swift Date
+.blob    → Database Data directly cast to Swift Data
+.text    → Database String directly cast to Swift String
+.any     → No conversion, maximum flexibility for dynamic content
+```
+
+### 5. Test-Friendly Design
 
 ```swift
 // ✅ Recommended: Protocol-oriented design for easy testing

@@ -197,10 +197,6 @@ struct User: FuseDatabaseRecord {
         ]
         return FuseTableDefinition(name: "users", columns: columns)
     }
-    
-    var tableDefinition: FuseTableDefinition {
-        return User.tableDefinition()
-    }
 }
 ```
 

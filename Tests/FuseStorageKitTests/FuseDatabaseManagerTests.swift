@@ -17,7 +17,7 @@ struct MockRecord: FuseDatabaseRecord, Equatable {
     }
     
     /// Table definition for this record type
-    var tableDefinition: FuseTableDefinition {
+    static func tableDefinition() -> FuseTableDefinition {
         return FuseTableDefinition(
             name: Self.databaseTableName,
             columns: [
@@ -297,7 +297,7 @@ class FuseDatabaseManagerTests: XCTestCase {
                 var secret_data: String
                 
                 /// Table definition for this record type
-                var tableDefinition: FuseTableDefinition {
+                static func tableDefinition() -> FuseTableDefinition {
                     return FuseTableDefinition(
                         name: Self.databaseTableName,
                         columns: [
@@ -370,7 +370,7 @@ class FuseDatabaseManagerTests: XCTestCase {
                 var secret_data: String
                 
                 /// Table definition for this record type
-                var tableDefinition: FuseTableDefinition {
+                static func tableDefinition() -> FuseTableDefinition {
                     return FuseTableDefinition(
                         name: Self.databaseTableName,
                         columns: [
@@ -1007,17 +1007,17 @@ class FuseDatabaseManagerTests: XCTestCase {
                 var id: Int64
                 var data: String
                 
-                /// Table definition for this record type
-                var tableDefinition: FuseTableDefinition {
-                    return FuseTableDefinition(
-                        name: Self.databaseTableName,
-                        columns: [
-                            FuseColumnDefinition(name: "id", type: .integer, isPrimaryKey: true),
-                            FuseColumnDefinition(name: "data", type: .text, isNotNull: true)
-                        ],
-                        options: [.ifNotExists]
-                    )
-                }
+                            /// Table definition for this record type
+            static func tableDefinition() -> FuseTableDefinition {
+                return FuseTableDefinition(
+                    name: Self.databaseTableName,
+                    columns: [
+                        FuseColumnDefinition(name: "id", type: .integer, isPrimaryKey: true),
+                        FuseColumnDefinition(name: "data", type: .text, isNotNull: true)
+                    ],
+                    options: [.ifNotExists]
+                )
+            }
             }
             
             let records: [TestRecord] = try reopenedDBManager.fetch(of: TestRecord.self)
@@ -1121,7 +1121,7 @@ class FuseDatabaseManagerTests: XCTestCase {
             }
             
             /// Table definition for this record type
-            var tableDefinition: FuseTableDefinition {
+            static func tableDefinition() -> FuseTableDefinition {
                 return FuseTableDefinition(
                     name: Self.databaseTableName,
                     columns: [
@@ -1210,7 +1210,7 @@ class FuseDatabaseManagerTests: XCTestCase {
             }
             
             /// Table definition for this record type
-            var tableDefinition: FuseTableDefinition {
+            static func tableDefinition() -> FuseTableDefinition {
                 return FuseTableDefinition(
                     name: Self.databaseTableName,
                     columns: [
@@ -1293,7 +1293,7 @@ class FuseDatabaseManagerTests: XCTestCase {
             }
             
             /// Table definition for this record type
-            var tableDefinition: FuseTableDefinition {
+            static func tableDefinition() -> FuseTableDefinition {
                 return FuseTableDefinition(
                     name: Self.databaseTableName,
                     columns: [
@@ -1389,7 +1389,7 @@ class FuseDatabaseManagerTests: XCTestCase {
             }
             
             /// Table definition for this record type
-            var tableDefinition: FuseTableDefinition {
+            static func tableDefinition() -> FuseTableDefinition {
                 return FuseTableDefinition(
                     name: Self.databaseTableName,
                     columns: [
@@ -1508,7 +1508,7 @@ class FuseDatabaseManagerTests: XCTestCase {
             }
             
             /// Table definition for this record type
-            var tableDefinition: FuseTableDefinition {
+            static func tableDefinition() -> FuseTableDefinition {
                 return FuseTableDefinition(
                     name: Self.databaseTableName,
                     columns: [

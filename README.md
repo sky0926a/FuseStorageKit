@@ -426,7 +426,6 @@ struct User: FuseDatabaseRecord {
             FuseColumnDefinition(name: "email", type: .text, isNotNull: true)
         ])
     }
-    var tableDefinition: FuseTableDefinition { User.tableDefinition() }
 }
 
 // 4. Use your storage

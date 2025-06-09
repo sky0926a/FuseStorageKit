@@ -14,8 +14,8 @@ public protocol FuseDatabaseRecord: Codable, Identifiable, FuseFetchableRecord, 
     static var databaseTableName: String { get }
     
     /// The table definition for this record type, defining column types and constraints
-    /// This property provides type information for proper encode/decode operations
-    var tableDefinition: FuseTableDefinition { get }
+    /// This static function provides type information for proper encode/decode operations
+    static func tableDefinition() -> FuseTableDefinition
     
     /// Converts the record to a dictionary of database values
     /// - Returns: A dictionary mapping column names to their corresponding database values
@@ -43,7 +43,7 @@ public extension FuseDatabaseRecord {
     func toDatabaseValues() -> [String: FuseDatabaseValueConvertible?] {
         var values: [String: FuseDatabaseValueConvertible?] = [:]
         let mirror = Mirror(reflecting: self)
-        let columnsByName = Dictionary(uniqueKeysWithValues: tableDefinition.columns.map { ($0.name, $0) })
+        let columnsByName = Dictionary(uniqueKeysWithValues: Self.tableDefinition().columns.map { ($0.name, $0) })
         
         for child in mirror.children {
             guard let label = child.label,

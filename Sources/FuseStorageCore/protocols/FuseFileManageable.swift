@@ -1,4 +1,9 @@
 import Foundation
+#if os(iOS) || os(tvOS) || os(watchOS)
+import UIKit
+#elseif os(macOS)
+import AppKit
+#endif
 
 /// Protocol defining file operations for FuseStorageKit
 /// 

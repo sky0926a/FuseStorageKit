@@ -1,5 +1,5 @@
 import Foundation
-import FirebaseFirestore
+internal import FirebaseFirestore
 
 
 #if canImport(FirebaseFirestore)

@@ -46,14 +46,23 @@ func exampleUsage() throws {
     try dbManager.add(user1)
     try dbManager.add(user2)
     
-    // 4. Fetch users
-    let allUsers: [User] = try dbManager.fetch(of: User.self)
+    // 4. Fetch all users
+    let allUsers: [User] = try dbManager.fetch(
+        of: User.self,
+        filters: [],
+        sort: nil,
+        limit: nil,
+        offset: nil
+    )
     print("All users: \(allUsers)")
     
     // 5. Fetch with filters
     let youngUsers: [User] = try dbManager.fetch(
         of: User.self,
-        filters: [FuseQueryFilter.lessThan(field: "age", value: 30)]
+        filters: [FuseQueryFilter.lessThan(field: "age", value: 30)],
+        sort: nil,
+        limit: nil,
+        offset: nil
     )
     print("Young users: \(youngUsers)")
     

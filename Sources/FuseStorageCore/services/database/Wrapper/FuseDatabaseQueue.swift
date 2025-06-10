@@ -127,7 +127,14 @@ public protocol FuseFetchableRecord {
 public extension FuseFetchableRecord {
     static func fetchAll(_ db: FuseDatabaseConnection, sql: String, arguments: FuseStatementArguments) throws -> [Self] {
         let rows = try db.fetchRows(sql: sql, arguments: arguments)
-        return try rows.map { try Self.fromDatabase(row: $0) }
+        return try rows.map {
+            do {
+                return try Self.fromDatabase(row: $0)
+            } catch {
+                throw error
+            }
+           
+        }
     }
     
     /// Default implementation of fromDatabase using tableDefinition for direct type conversion
@@ -175,153 +182,63 @@ public extension FuseFetchableRecord {
         return try reconstructFromTypedValues(typedValues)
     }
     
-    /// Direct type conversion based on FuseColumnType without JSON encoding/decoding
-    /// 
-    /// - Parameters:
-    ///   - dbValue: Raw value from database row
-    ///   - columnType: Expected column type from tableDefinition
-    ///   - columnName: Column name for error reporting
-    /// - Returns: Directly converted value of correct Swift type
-    /// - Throws: DecodingError if conversion fails
     private static func convertDatabaseValueDirectly(_ dbValue: Any?, columnType: FuseColumnType, columnName: String) throws -> Any? {
         // Handle nil/NSNull values
         guard let dbValue = dbValue else { return nil }
         if dbValue is NSNull { return nil }
-        
+        let v = dbValue
         // Direct type conversion based on FuseColumnType
         switch columnType {
         case .text:
-            if let stringValue = dbValue as? String {
-                return stringValue
+            guard let s = v as? String else {
+                throw DecodingError.typeMismatch(String.self, .init(codingPath: [], debugDescription: "\(columnName) expected TEXT"))
             }
-            // Convert other types to string
-            return String(describing: dbValue)
-            
+            return s
         case .integer:
-            if let int64Value = dbValue as? Int64 {
-                return int64Value
-            }
-            if let intValue = dbValue as? Int {
-                return Int64(intValue)
-            }
-            if let stringValue = dbValue as? String, let int64Value = Int64(stringValue) {
-                return int64Value
-            }
-            throw DecodingError.typeMismatch(Int64.self, 
-                DecodingError.Context(codingPath: [], 
-                    debugDescription: "Cannot convert value '\(dbValue)' to Int64 for column '\(columnName)'"))
-            
+            if let i64 = v as? Int64 { return i64 }
+            if let i = v as? Int { return Int64(i) }
+            if let d = v as? Double { return Int64(d) }
+            if let s = v as? String, let i64 = Int64(s) { return i64 }
+            throw DecodingError.typeMismatch(Int64.self, .init(codingPath: [], debugDescription: "\(columnName) expected INTEGER"))
         case .real, .double:
-            if let doubleValue = dbValue as? Double {
-                return doubleValue
-            }
-            if let floatValue = dbValue as? Float {
-                return Double(floatValue)
-            }
-            if let intValue = dbValue as? Int {
-                return Double(intValue)
-            }
-            if let int64Value = dbValue as? Int64 {
-                return Double(int64Value)
-            }
-            if let stringValue = dbValue as? String, let doubleValue = Double(stringValue) {
-                return doubleValue
-            }
-            throw DecodingError.typeMismatch(Double.self, 
-                DecodingError.Context(codingPath: [], 
-                    debugDescription: "Cannot convert value '\(dbValue)' to Double for column '\(columnName)'"))
-            
+            if let d = v as? Double { return d }
+            if let f = v as? Float { return Double(f) }
+            if let i = v as? Int { return Double(i) }
+            if let i64 = v as? Int64 { return Double(i64) }
+            if let s = v as? String, let d = Double(s) { return d }
+            throw DecodingError.typeMismatch(Double.self, .init(codingPath: [], debugDescription: "\(columnName) expected REAL"))
         case .numeric:
-            // Similar to double but more flexible
-            if let doubleValue = dbValue as? Double {
-                return doubleValue
-            }
-            if let intValue = dbValue as? Int {
-                return Double(intValue)
-            }
-            if let int64Value = dbValue as? Int64 {
-                return Double(int64Value)
-            }
-            return Double(0) // Fallback for numeric
-            
+            if let d = v as? Double { return d }
+            if let i = v as? Int { return Double(i) }
+            if let i64 = v as? Int64 { return Double(i64) }
+            if let s = v as? String, let d = Double(s) { return d }
+            throw DecodingError.typeMismatch(Double.self, .init(codingPath: [], debugDescription: "\(columnName) expected NUMERIC"))
         case .boolean:
-            if let boolValue = dbValue as? Bool {
-                return boolValue
+            if let b = v as? Bool { return b }
+            if let i = v as? Int { return i != 0 }
+            if let i64 = v as? Int64 { return i64 != 0 }
+            if let s = v as? String {
+                let l = s.trimmingCharacters(in: .whitespaces).lowercased()
+                if ["true","1","yes"].contains(l) { return true }
+                if ["false","0","no"].contains(l) { return false }
             }
-            if let intValue = dbValue as? Int {
-                return intValue != 0
-            }
-            if let int64Value = dbValue as? Int64 {
-                return int64Value != 0
-            }
-            if let stringValue = dbValue as? String {
-                let lowercased = stringValue.lowercased()
-                return lowercased == "true" || lowercased == "1" || lowercased == "yes"
-            }
-            throw DecodingError.typeMismatch(Bool.self, 
-                DecodingError.Context(codingPath: [], 
-                    debugDescription: "Cannot convert value '\(dbValue)' to Bool for column '\(columnName)'"))
-            
+            throw DecodingError.typeMismatch(Bool.self, .init(codingPath: [], debugDescription: "\(columnName) expected BOOLEAN"))
         case .date:
-            if let dateValue = dbValue as? Date {
-                return dateValue
+            // Store Date as ISO8601 string
+            if let ts = v as? TimeInterval { return Date(timeIntervalSince1970: ts) }
+            if let i = v as? Int { return Date(timeIntervalSince1970: TimeInterval(i)) }
+            if let s = v as? String, let d = FuseConstants.getDataFormatter().date(from: s) {
+                return d
             }
-            if let timestamp = dbValue as? Double {
-                return Date(timeIntervalSince1970: timestamp)
-            }
-            if let timestamp = dbValue as? Int64 {
-                return Date(timeIntervalSince1970: Double(timestamp))
-            }
-            if let stringValue = dbValue as? String {
-                // Try multiple date formats
-                if let date = parseDate(from: stringValue) {
-                    return date
-                }
-            }
-            throw DecodingError.typeMismatch(Date.self, 
-                DecodingError.Context(codingPath: [], 
-                    debugDescription: "Cannot convert value '\(dbValue)' to Date for column '\(columnName)'"))
-            
+            return nil
         case .blob:
-            if let dataValue = dbValue as? Data {
-                return dataValue
-            }
-            if let stringValue = dbValue as? String {
-                // Try base64 decoding first, then UTF-8
-                if let data = Data(base64Encoded: stringValue) {
-                    return data
-                }
-                return stringValue.data(using: .utf8)
-            }
-            throw DecodingError.typeMismatch(Data.self, 
-                DecodingError.Context(codingPath: [], 
-                    debugDescription: "Cannot convert value '\(dbValue)' to Data for column '\(columnName)'"))
-            
+            if let data = v as? Data { return data }
+            if let s = v as? String, let data = Data(base64Encoded: s) { return data }
+            if let s = v as? String, let data = s.data(using: .utf8) { return data }
+            throw DecodingError.typeMismatch(Data.self, .init(codingPath: [], debugDescription: "\(columnName) expected BLOB"))
         case .any:
-            // For .any type, return the value as-is without conversion
-            // This allows maximum flexibility for dynamic content
-            return dbValue
+            return v
         }
-    }
-    
-    /// Helper method to parse date from string
-    private static func parseDate(from string: String) -> Date? {
-        let formatters = [
-            FuseConstants.getDataFormatter()
-        ]
-        
-        for formatter in formatters {
-            if let date = formatter.date(from: string) {
-                return date
-            }
-        }
-        
-        // Try timestamp parsing
-        if let timestamp = Double(string) {
-            return Date(timeIntervalSince1970: timestamp)
-        }
-        
-        return nil
     }
     
     /// Reconstruct object from directly typed values using JSON decoding
@@ -345,14 +262,19 @@ public extension FuseFetchableRecord {
             }
             // Skip nil values
         }
-        
+        do {
+            let jsonData = try JSONSerialization.data(withJSONObject: cleanedDict, options: [])
+            let decoder = JSONDecoder()
+            return try decoder.decode(Self.self, from: jsonData)
+        } catch {
+            throw error
+        }
         // JSON encode then decode to reconstruct the object
-        let jsonData = try JSONSerialization.data(withJSONObject: cleanedDict, options: [])
-        let decoder = JSONDecoder()
+        
         
         // Since we've done direct type conversion based on FuseColumnType, 
         // the data should be properly typed and ready for JSON decoding
-        return try decoder.decode(Self.self, from: jsonData)
+        
     }
 }
 
@@ -392,80 +314,57 @@ public extension FusePersistableRecord {
         if value is NSNull {
             return NSNull()
         }
-        
-        // Handle Optional values
-        if let optionalMirror = Mirror(reflecting: value).displayStyle, optionalMirror == .optional {
-            let mirror = Mirror(reflecting: value)
-            if mirror.children.isEmpty {
-                // nil value
-                return NSNull()
-            } else {
-                // unwrap and convert
-                let unwrappedValue = mirror.children.first!.value
-                return convertToFuseDatabaseValue(unwrappedValue, columnType: columnType)
-            }
+        func unwrap(_ x: Any) -> Any {
+            let m = Mirror(reflecting: x)
+            if m.displayStyle == .optional, let c = m.children.first { return unwrap(c.value) }
+            return x
         }
-        
-        // Convert based on column type - direct conversion based on FuseColumnType
+        let u = unwrap(value)
         switch columnType {
         case .text:
-            return String(describing: value)
+            if let s = u as? String { return s }
+            if let d = u as? Data { return d.base64EncodedString() }
+            return String(describing: u)
         case .integer:
-            if let intValue = value as? Int {
-                return Int64(intValue)
-            } else if let int64Value = value as? Int64 {
-                return int64Value
-            } else if let stringValue = value as? String {
-                return Int64(stringValue) ?? 0
-            }
-            return 0
+            if let i64 = u as? Int64 { return i64 }
+            if let i = u as? Int { return Int64(i) }
+            if let d = u as? Double { return Int64(d) }
+            if let s = u as? String, let i64 = Int64(s) { return i64 }
+            return nil
         case .real, .double:
-            if let doubleValue = value as? Double {
-                return doubleValue
-            } else if let floatValue = value as? Float {
-                return Double(floatValue)
-            } else if let stringValue = value as? String {
-                return Double(stringValue) ?? 0.0
-            }
-            return 0.0
+            if let d = u as? Double { return d }
+            if let f = u as? Float { return Double(f) }
+            if let i = u as? Int { return Double(i) }
+            if let s = u as? String, let d = Double(s) { return d }
+            return nil
         case .numeric:
-            if let doubleValue = value as? Double {
-                return doubleValue
-            } else if let intValue = value as? Int {
-                return Double(intValue)
-            }
-            return 0.0
+            if let d = u as? Double { return d }
+            if let i = u as? Int { return Double(i) }
+            if let s = u as? String, let d = Double(s) { return d }
+            return nil
         case .boolean:
-            if let boolValue = value as? Bool {
-                return boolValue
-            } else if let stringValue = value as? String {
-                return stringValue.lowercased() == "true" || stringValue == "1"
-            } else if let intValue = value as? Int {
-                return intValue != 0
+            if let b = u as? Bool { return b }
+            if let i = u as? Int { return i != 0 }
+            if let s = u as? String {
+                let l = s.trimmingCharacters(in: .whitespaces).lowercased()
+                if ["true","1","yes"].contains(l) { return true }
+                if ["false","0","no"].contains(l) { return false }
             }
-            return false
+            return nil
         case .date:
-            if let dateValue = value as? Date {
-                return dateValue
-            } else if let stringValue = value as? String {
-                // Try to parse as ISO date string
-                let formatter = FuseConstants.getDataFormatter()
-                return formatter.date(from: stringValue) ?? Date()
-            }
-            return Date()
+            if let d = u as? Date { return d }
+            if let ts = u as? TimeInterval { return Date(timeIntervalSince1970: ts) }
+            if let i = u as? Int { return Date(timeIntervalSince1970: TimeInterval(i)) }
+            if let s = u as? String, let d = FuseConstants.getDataFormatter().date(from: s) { return d }
+            return nil
         case .blob:
-            if let dataValue = value as? Data {
-                return dataValue
-            } else if let stringValue = value as? String {
-                return stringValue.data(using: .utf8) ?? Data()
-            }
-            return Data()
+            if let d = u as? Data { return d }
+            if let s = u as? String, let data = Data(base64Encoded: s) { return data }
+            if let s = u as? String, let data = s.data(using: .utf8) { return data }
+            return nil
         case .any:
-            // For ANY type, preserve as FuseDatabaseValueConvertible if possible
-            if let convertibleValue = value as? FuseDatabaseValueConvertible {
-                return convertibleValue
-            }
-            return String(describing: value)
+            if let c = u as? FuseDatabaseValueConvertible { return c }
+            return String(describing: u)
         }
     }
 }

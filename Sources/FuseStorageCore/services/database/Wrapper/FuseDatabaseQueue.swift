@@ -307,7 +307,7 @@ public extension FuseFetchableRecord {
     /// Helper method to parse date from string
     private static func parseDate(from string: String) -> Date? {
         let formatters = [
-            ISO8601DateFormatter(),
+            FuseConstants.getDataFormatter()
         ]
         
         for formatter in formatters {
@@ -449,7 +449,7 @@ public extension FusePersistableRecord {
                 return dateValue
             } else if let stringValue = value as? String {
                 // Try to parse as ISO date string
-                let formatter = ISO8601DateFormatter()
+                let formatter = FuseConstants.getDataFormatter()
                 return formatter.date(from: stringValue) ?? Date()
             }
             return Date()

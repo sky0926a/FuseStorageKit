@@ -1,4 +1,4 @@
-import Foundation
+import UIKit
 
 /// Protocol defining file operations for FuseStorageKit
 /// 

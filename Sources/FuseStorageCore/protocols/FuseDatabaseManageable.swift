@@ -20,12 +20,12 @@ public protocol FuseDatabaseManageable: FuseManageable {
     /// Inserts a new record into the database.
     /// - Parameter record: The record to insert
     /// - Throws: Database operation errors if the insertion fails
-    func add<T: FuseDatabaseRecord>(_ record: T) throws
+    func add<T: FuseDatabaseBaseRecord>(_ record: T) throws
 
     /// Inserts multiple records into the database in a single transaction.
     /// - Parameter records: An array of records to insert.
     /// - Throws: Database operation errors if the insertion fails.
-    func add<T: FuseDatabaseRecord>(_ records: [T]) throws
+    func add<T: FuseDatabaseBaseRecord>(_ records: [T]) throws
     
     /// Fetches records from the database with optional filtering, sorting, and pagination
     /// - Parameters:
@@ -36,7 +36,7 @@ public protocol FuseDatabaseManageable: FuseManageable {
     ///   - offset: Optional number of records to skip
     /// - Returns: Array of fetched records
     /// - Throws: Database operation errors if the fetch fails
-    func fetch<T: FuseDatabaseRecord>(
+    func fetch<T: FuseDatabaseBaseRecord>(
         of type: T.Type,
         filters: [FuseQueryFilter],
         sort: FuseQuerySort?,
@@ -47,18 +47,18 @@ public protocol FuseDatabaseManageable: FuseManageable {
     /// Deletes a record from the database
     /// - Parameter record: The record to delete
     /// - Throws: Database operation errors if the deletion fails
-    func delete<T: FuseDatabaseRecord>(_ record: T) throws
+    func delete<T: FuseDatabaseBaseRecord>(_ record: T) throws
     
     /// Deletes multiple records from the database in a single transaction.
     /// - Parameter records: An array of records to delete.
     /// - Throws: Database operation errors if the deletion fails.
-    func delete<T: FuseDatabaseRecord>(_ records: [T]) throws
+    func delete<T: FuseDatabaseBaseRecord>(_ records: [T]) throws
     
     /// Executes a SELECT query and returns the results as an array of records
     /// - Parameter query: The query to execute
     /// - Returns: Array of records matching the query
     /// - Throws: Database operation errors if the query fails
-    func read<T: FuseDatabaseRecord>(_ query: FuseQuery) throws -> [T]
+    func read<T: FuseDatabaseBaseRecord>(_ query: FuseQuery) throws -> [T]
     
     /// Executes a write operation (INSERT/UPDATE/DELETE/UPSERT)
     /// - Parameter query: The query to execute

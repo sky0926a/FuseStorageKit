@@ -1,14 +1,7 @@
 import Foundation
 @_exported import FuseStorageCore
 import GRDB
-import FuseObjcBridge
 
-// MARK: - C-callable Swift function for auto registration
-@_cdecl("fuseRegisterFactory")
-public func fuseRegisterFactory() {
-    let factory = FuseGRDBDatabaseFactory()
-    FuseDatabaseFactoryRegistry.shared.setMainFactory(factory)
-}
 
 // MARK: - Fsue GRDB Integration
 class FuseGRDBDatabaseFactory: NSObject, FuseDatabaseFactory {

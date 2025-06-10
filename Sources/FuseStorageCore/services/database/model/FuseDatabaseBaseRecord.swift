@@ -3,7 +3,7 @@ import Foundation
 /// A protocol that defines the requirements for database records in FuseStorageKit.
 /// This protocol combines Codable for JSON serialization, FuseFetchableRecord for reading from the database,
 /// and FusePersistableRecord for writing to the database.
-public protocol FuseDatabaseRecord: Codable, Identifiable, FuseFetchableRecord, FusePersistableRecord {
+public protocol FuseDatabaseBaseRecord: Codable, Identifiable, FuseFetchableRecord, FusePersistableRecord {
     /// The unique identifier for the record in the database
     var _fuseid: FuseDatabaseValueConvertible { get }
     
@@ -19,7 +19,7 @@ public protocol FuseDatabaseRecord: Codable, Identifiable, FuseFetchableRecord, 
     static func tableDefinition() -> FuseTableDefinition
 }
 
-public extension FuseDatabaseRecord {
+public extension FuseDatabaseBaseRecord {
     /// The unique identifier for the record, automatically retrieved from the specified ID field.
     /// This implementation uses reflection to find the ID field value.
     var _fuseid: FuseDatabaseValueConvertible {

@@ -29,7 +29,7 @@ public final class NoSyncManager: FuseSyncManageable {
   /// - Parameters:
   ///   - items: The records that would be pushed (ignored)
   ///   - path: The path where records would be pushed (ignored)
-  public func pushLocalChanges<T: FuseDatabaseRecord>(_ items: [T], at path: String) {
+  public func pushLocalChanges<T: FuseDatabaseBaseRecord>(_ items: [T], at path: String) {
     // No operation implementation
   }
   

@@ -21,7 +21,7 @@ public protocol FuseSyncManageable: FuseManageable {
   /// - Parameters:
   ///   - items: The database records to push to remote storage
   ///   - path: The remote path where the records will be stored
-  func pushLocalChanges<T: FuseDatabaseRecord>(
+  func pushLocalChanges<T: FuseDatabaseBaseRecord>(
     _ items: [T], at path: String
   )
   

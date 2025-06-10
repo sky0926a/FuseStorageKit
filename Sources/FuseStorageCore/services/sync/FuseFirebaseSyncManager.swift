@@ -1,5 +1,5 @@
 import Foundation
-import FirebaseFirestore
+internal import FirebaseFirestore
 
 
 #if canImport(FirebaseFirestore)
@@ -35,7 +35,7 @@ public final class FuseFirebaseSyncManager: FuseSyncManageable {
   /// - Parameters:
   ///   - items: The records to push to Firebase Storage
   ///   - path: The Firebase Storage path where the records will be stored
-  public func pushLocalChanges<T: FuseDatabaseRecord>(_ items: [T], at path: String) {
+  public func pushLocalChanges<T: FuseDatabaseBaseRecord>(_ items: [T], at path: String) {
    
   }
   

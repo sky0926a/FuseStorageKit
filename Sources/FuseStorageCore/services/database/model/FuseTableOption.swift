@@ -10,14 +10,14 @@ public struct FuseTableOptions: OptionSet {
     public init(rawValue: Int) { self.rawValue = rawValue }
     
     /// Create the table only if it doesn't exist
-    public static let ifNotExists = FuseTableOptions(rawValue: 1 << 0)
+    nonisolated(unsafe) public static let ifNotExists = FuseTableOptions(rawValue: 1 << 0)
     /// Create a temporary table that exists only for the current session
-    public static let temporary   = FuseTableOptions(rawValue: 1 << 1)
+    nonisolated(unsafe) public static let temporary   = FuseTableOptions(rawValue: 1 << 1)
     /// Create a table without the rowid column
-    public static let withoutRowID = FuseTableOptions(rawValue: 1 << 2)
+    nonisolated(unsafe) public static let withoutRowID = FuseTableOptions(rawValue: 1 << 2)
     /// Create a table with strict type checking (available iOS 15.4+)
     @available(iOS 15.4, macOS 12.4, tvOS 15.4, watchOS 8.5, *)
-    public static let strict      = FuseTableOptions(rawValue: 1 << 3)
+    nonisolated(unsafe) public static let strict      = FuseTableOptions(rawValue: 1 << 3)
 }
 
 /// Represents a complete table definition for database creation

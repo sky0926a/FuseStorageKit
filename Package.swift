@@ -1,4 +1,4 @@
-// swift-tools-version:5.6
+// swift-tools-version:6.0
 import PackageDescription
 
 let package = Package(
@@ -27,7 +27,10 @@ let package = Package(
             dependencies: [
                 .product(name: "FirebaseFirestore", package: "firebase-ios-sdk"),
             ],
-            path: "Sources/FuseStorageCore"
+            path: "Sources/FuseStorageCore",
+            swiftSettings: [
+                .unsafeFlags(["-enable-library-evolution"])
+            ]
         ),
         .target(
             name: "FuseObjcBridge",
@@ -41,7 +44,10 @@ let package = Package(
                 "GRDBSQLCipher",
                 "FuseObjcBridge"
             ],
-            path: "Sources/FuseStorageSQLCipher"
+            path: "Sources/FuseStorageSQLCipher",
+            swiftSettings: [
+                .unsafeFlags(["-enable-library-evolution"])
+            ]
         ),
         .testTarget(
             name: "FuseStorageKitTests",

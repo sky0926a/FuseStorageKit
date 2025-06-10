@@ -85,7 +85,7 @@ public final class FuseDatabaseManager: FuseDatabaseManageable {
     /// Inserts a new record into the database.
     /// - Parameter record: The record to insert
     /// - Throws: Database operation errors if the insertion fails
-    public func add<T: FuseDatabaseRecord>(_ record: T) throws {
+    public func add<T: FuseDatabaseBaseRecord>(_ record: T) throws {
         let query = FuseQuery(
             table: T.databaseTableName,
             action: .insert(values: record.toDatabaseValues())
@@ -97,7 +97,7 @@ public final class FuseDatabaseManager: FuseDatabaseManageable {
     /// Inserts multiple records into the database in a single batch operation to optimize performance.
     /// - Parameter records: An array of records to be inserted.
     /// - Throws: A database error if the batch insertion fails.
-    public func add<T: FuseDatabaseRecord>(_ records: [T]) throws {
+    public func add<T: FuseDatabaseBaseRecord>(_ records: [T]) throws {
         guard !records.isEmpty else { return }
         
         // Gather database values for all records
@@ -122,7 +122,7 @@ public final class FuseDatabaseManager: FuseDatabaseManageable {
     ///   - offset: Optional number of records to skip
     /// - Returns: Array of fetched records
     /// - Throws: Database operation errors if the fetch fails
-    public func fetch<T: FuseDatabaseRecord>(
+    public func fetch<T: FuseDatabaseBaseRecord>(
         of type: T.Type,
         filters: [FuseQueryFilter] = [],
         sort: FuseQuerySort? = nil,
@@ -146,7 +146,7 @@ public final class FuseDatabaseManager: FuseDatabaseManageable {
     /// Deletes a record from the database.
     /// - Parameter record: The record to delete
     /// - Throws: Database operation errors if the deletion fails
-    public func delete<T: FuseDatabaseRecord>(_ record: T) throws {
+    public func delete<T: FuseDatabaseBaseRecord>(_ record: T) throws {
         let query = FuseQuery(
             table: T.databaseTableName,
             action: .delete(filters: [
@@ -160,7 +160,7 @@ public final class FuseDatabaseManager: FuseDatabaseManageable {
     /// Deletes multiple records from the database in a single transaction.
     /// - Parameter records: An array of records to delete.
     /// - Throws: Database operation errors if the deletion fails.
-    public func delete<T: FuseDatabaseRecord>(_ records: [T]) throws {
+    public func delete<T: FuseDatabaseBaseRecord>(_ records: [T]) throws {
         guard !records.isEmpty else { return }
         
         // Extract _fuseid values from all records
@@ -182,7 +182,7 @@ public final class FuseDatabaseManager: FuseDatabaseManageable {
     /// - Parameter query: The query to execute
     /// - Returns: Array of records matching the query
     /// - Throws: Database operation errors if the query fails
-    public func read<T: FuseDatabaseRecord>(_ query: FuseQuery) throws -> [T] {
+    public func read<T: FuseDatabaseBaseRecord>(_ query: FuseQuery) throws -> [T] {
         return try dbQueue.read { db in
             let (sql, args) = query.build()
             
@@ -195,7 +195,7 @@ public final class FuseDatabaseManager: FuseDatabaseManageable {
     /// - Parameter arguments: The arguments to pass to the SQL
     /// - Returns: Array of records matching the query
     /// - Throws: Database operation errors if the query fails
-    public func read<T: FuseDatabaseRecord>(_ sql: String, arguments: some Sequence<(any FuseDatabaseValueConvertible)?>) throws -> [T] {
+    public func read<T: FuseDatabaseBaseRecord>(_ sql: String, arguments: some Sequence<(any FuseDatabaseValueConvertible)?>) throws -> [T] {
         return try dbQueue.read { db in
             return try T.fetchAll(db, sql: sql, arguments: FuseStatementArguments(arguments))
         }

@@ -5,8 +5,8 @@ import Foundation
 /// This enumeration provides different sync options, including Firebase integration,
 /// no-operation sync for offline-only apps, and custom sync implementations.
 public enum FuseSyncBuilderOptionType {
-    #if canImport(FirebaseStorage)
-    /// Synchronize data using Firebase Storage services
+    #if canImport(FirebaseFirestore)
+    /// Synchronize data using Firebase Firestore services
     case firebase
     #endif
     /// No synchronization - local storage only
@@ -28,10 +28,10 @@ public struct FuseSyncBuilderOption: FuseStorageBuilderOption {
         self.optionType = optionType
     }
 
-    #if canImport(FirebaseStorage)
+    #if canImport(FirebaseFirestore)
     /// Creates a Firebase-based synchronization configuration
     /// 
-    /// This factory method configures a sync manager that uses Firebase Storage
+    /// This factory method configures a sync manager that uses Firebase Firestore
     /// for cloud-based data synchronization, enabling real-time data sharing
     /// across devices and platforms.
     /// 
@@ -68,7 +68,7 @@ public struct FuseSyncBuilderOption: FuseStorageBuilderOption {
 
     public func build() throws ->  FuseManageable {
         switch self.optionType {
-        #if canImport(FirebaseStorage)
+        #if canImport(FirebaseFirestore)
         case .firebase:
             return FuseFirebaseSyncManager()
         #endif
@@ -81,7 +81,7 @@ public struct FuseSyncBuilderOption: FuseStorageBuilderOption {
     
     public var name: String {
         switch self.optionType {
-        #if canImport(FirebaseStorage)
+        #if canImport(FirebaseFirestore)
         case .firebase:
             return "sync_firebase"
         #endif

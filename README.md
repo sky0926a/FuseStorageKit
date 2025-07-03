@@ -8,9 +8,9 @@ A lightweight, unified storage solution for iOS and macOS that provides a single
 - **Database Storage** - SQLite with optional AES-256 encryption
 - **File Management** - Structured file system operations
 - **Preferences Storage** - UserDefaults and Keychain integration
-- **Cloud Synchronization** - Optional Firebase support
+- **Cloud Synchronization** - Framework ready (implementation in progress)
 
-FuseStorageKit abstracts away the complexities of underlying implementations (GRDB, SQLCipher, Firebase) through a simple builder pattern and manager facade.
+FuseStorageKit abstracts away the complexities of underlying implementations (GRDB, SQLCipher) through a simple builder pattern and manager facade.
 
 > 📖 **For complete API documentation, see [USAGE.md](USAGE.md)**
 
@@ -218,14 +218,11 @@ let customEncryption = EncryptionOptions("mySecretKey")
 // Keychain with access group for sharing between apps
 .with(preferences: .keychain("com.myapp.shared", accessGroup: "TEAMID.com.mycompany.shared"))
 
-// All keychain accessibility options:
+// Available keychain accessibility options:
 .with(preferences: .keychain("service", accessibility: .whenUnlocked))          // Default - accessible when device unlocked
 .with(preferences: .keychain("service", accessibility: .afterFirstUnlock))     // Accessible after first unlock
-.with(preferences: .keychain("service", accessibility: .always))               // Always accessible (less secure)
-.with(preferences: .keychain("service", accessibility: .whenPasscodeSetThisDeviceOnly))  // Requires passcode
 .with(preferences: .keychain("service", accessibility: .whenUnlockedThisDeviceOnly))     // This device only
 .with(preferences: .keychain("service", accessibility: .afterFirstUnlockThisDeviceOnly)) // After first unlock, this device only
-.with(preferences: .keychain("service", accessibility: .alwaysThisDeviceOnly))           // Always accessible, this device only
 ```
 
 #### Custom Preferences
@@ -300,8 +297,8 @@ let customEncryption = EncryptionOptions("mySecretKey")
 
 #### Firebase Synchronization
 ```swift
-// Firebase synchronization (requires Firebase SDK)
-#if canImport(FirebaseStorage)
+// Firebase synchronization (framework available, implementation in progress)
+#if canImport(FirebaseFirestore)
 .with(sync: .firebase())
 #endif
 ```
@@ -432,7 +429,7 @@ struct User: FuseDatabaseRecord {
 try db.createTable(User.tableDefinition())
 try db.add(User(id: "1", name: "John", email: "john@example.com"))
 try prefs.set("dark", forKey: "theme")
-let users: [User] = try db.fetch(of: User.self)
+let users: [User] = try db.fetch(of: User.self, filters: [], sort: nil, limit: nil, offset: nil)
 let theme: String? = prefs.get(forKey: "theme")
 ```
 
@@ -449,7 +446,10 @@ let theme: String? = prefs.get(forKey: "theme")
 ### Core Dependencies
 
 - **GRDB.swift with SQLCipher**: Database functionality with encryption via [duckduckgo/GRDB.swift](https://github.com/duckduckgo/GRDB.swift)
-- **Firebase iOS SDK**: Sync functionality via [firebase/firebase-ios-sdk](https://github.com/firebase/firebase-ios-sdk) (optional)
+
+### Optional Dependencies
+
+- **Firebase iOS SDK**: Sync framework support via [firebase/firebase-ios-sdk](https://github.com/firebase/firebase-ios-sdk) (implementation in progress)
 
 ## Documentation
 
@@ -471,7 +471,7 @@ let theme: String? = prefs.get(forKey: "theme")
 ✅ AES-256 encryption via SQLCipher  
 ✅ UserDefaults and Keychain storage  
 ✅ File system operations  
-✅ Firebase sync (optional)  
+🚧 Firebase sync (framework ready, implementation in progress)  
 ✅ Multiple manager instances  
 ✅ Cross-platform support  
 ✅ Type-safe Codable integration  

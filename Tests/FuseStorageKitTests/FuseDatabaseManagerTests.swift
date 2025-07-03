@@ -4,7 +4,7 @@ import GRDB
 
 // Mock record type for testing - using the new simplified approach
 struct MockRecord: FuseDatabaseRecord, Equatable {
-    static var _fuseidField: String = "id"
+    nonisolated(unsafe) static var _fuseidField: String = "id"
 
     var id: Int64
     var name: String
@@ -17,7 +17,7 @@ struct MockRecord: FuseDatabaseRecord, Equatable {
     }
     
     /// Table definition for this record type
-    var tableDefinition: FuseTableDefinition {
+    static func tableDefinition() -> FuseTableDefinition {
         return FuseTableDefinition(
             name: Self.databaseTableName,
             columns: [
@@ -30,10 +30,200 @@ struct MockRecord: FuseDatabaseRecord, Equatable {
     }
 }
 
+// Complex data type test models
+struct Address: Codable, Equatable {
+    let street: String
+    let city: String
+    let zipCode: String
+}
+
+struct ContactInfo: Codable, Equatable {
+    let email: String
+    let phone: String?
+}
+
+// Mock record with arrays
+struct MockUserWithArrays: FuseDatabaseRecord, Equatable {
+    nonisolated(unsafe) static var _fuseidField: String = "id"
+    
+    var id: Int64
+    var name: String
+    var tags: [String]
+    var scores: [Int]
+    var notes: [String]?
+    
+    init(id: Int64, name: String, tags: [String], scores: [Int], notes: [String]? = nil) {
+        self.id = id
+        self.name = name
+        self.tags = tags
+        self.scores = scores
+        self.notes = notes
+    }
+    
+    static func tableDefinition() -> FuseTableDefinition {
+        return FuseTableDefinition(
+            name: Self.databaseTableName,
+            columns: [
+                FuseColumnDefinition(name: "id", type: .integer, isPrimaryKey: true),
+                FuseColumnDefinition(name: "name", type: .text, isNotNull: true),
+                FuseColumnDefinition(name: "tags", type: .text, isNotNull: true),
+                FuseColumnDefinition(name: "scores", type: .text, isNotNull: true),
+                FuseColumnDefinition(name: "notes", type: .text, isNotNull: false)
+            ],
+            options: [.ifNotExists]
+        )
+    }
+}
+
+// Mock record with dictionaries
+struct MockUserWithMaps: FuseDatabaseRecord, Equatable {
+    nonisolated(unsafe) static var _fuseidField: String = "id"
+    
+    var id: Int64
+    var name: String
+    var metadata: [String: String]
+    var settings: [String: Int]
+    var preferences: [String: String]?
+    
+    init(id: Int64, name: String, metadata: [String: String], settings: [String: Int], preferences: [String: String]? = nil) {
+        self.id = id
+        self.name = name
+        self.metadata = metadata
+        self.settings = settings
+        self.preferences = preferences
+    }
+    
+    static func tableDefinition() -> FuseTableDefinition {
+        return FuseTableDefinition(
+            name: Self.databaseTableName,
+            columns: [
+                FuseColumnDefinition(name: "id", type: .integer, isPrimaryKey: true),
+                FuseColumnDefinition(name: "name", type: .text, isNotNull: true),
+                FuseColumnDefinition(name: "metadata", type: .text, isNotNull: true),
+                FuseColumnDefinition(name: "settings", type: .text, isNotNull: true),
+                FuseColumnDefinition(name: "preferences", type: .text, isNotNull: false)
+            ],
+            options: [.ifNotExists]
+        )
+    }
+}
+
+// Mock record with nested objects
+struct MockEmployee: FuseDatabaseRecord, Equatable {
+    nonisolated(unsafe) static var _fuseidField: String = "id"
+    
+    var id: Int64
+    var name: String
+    var address: Address
+    var contactInfo: ContactInfo?
+    var emergencyContacts: [ContactInfo]
+    
+    init(id: Int64, name: String, address: Address, contactInfo: ContactInfo? = nil, emergencyContacts: [ContactInfo] = []) {
+        self.id = id
+        self.name = name
+        self.address = address
+        self.contactInfo = contactInfo
+        self.emergencyContacts = emergencyContacts
+    }
+    
+    static func tableDefinition() -> FuseTableDefinition {
+        return FuseTableDefinition(
+            name: Self.databaseTableName,
+            columns: [
+                FuseColumnDefinition(name: "id", type: .integer, isPrimaryKey: true),
+                FuseColumnDefinition(name: "name", type: .text, isNotNull: true),
+                FuseColumnDefinition(name: "address", type: .text, isNotNull: true),
+                FuseColumnDefinition(name: "contactInfo", type: .text, isNotNull: false),
+                FuseColumnDefinition(name: "emergencyContacts", type: .text, isNotNull: true)
+            ],
+            options: [.ifNotExists]
+        )
+    }
+}
+
+// Mock record with mixed complex types
+struct MockComplexRecord: FuseDatabaseRecord, Equatable {
+    nonisolated(unsafe) static var _fuseidField: String = "id"
+    
+    var id: Int64
+    var name: String
+    var stringArray: [String]
+    var intArray: [Int]
+    var stringDict: [String: String]
+    var intDict: [String: Int]
+    var nestedObject: Address
+    var optionalObject: ContactInfo?
+    var arrayOfObjects: [ContactInfo]
+    var optionalArray: [String]?
+    var optionalDict: [String: String]?
+    
+    init(id: Int64, name: String, stringArray: [String], intArray: [Int], 
+         stringDict: [String: String], intDict: [String: Int], 
+         nestedObject: Address, optionalObject: ContactInfo? = nil,
+         arrayOfObjects: [ContactInfo] = [], optionalArray: [String]? = nil, 
+         optionalDict: [String: String]? = nil) {
+        self.id = id
+        self.name = name
+        self.stringArray = stringArray
+        self.intArray = intArray
+        self.stringDict = stringDict
+        self.intDict = intDict
+        self.nestedObject = nestedObject
+        self.optionalObject = optionalObject
+        self.arrayOfObjects = arrayOfObjects
+        self.optionalArray = optionalArray
+        self.optionalDict = optionalDict
+    }
+    
+    static func tableDefinition() -> FuseTableDefinition {
+        return FuseTableDefinition(
+            name: Self.databaseTableName,
+            columns: [
+                FuseColumnDefinition(name: "id", type: .integer, isPrimaryKey: true),
+                FuseColumnDefinition(name: "name", type: .text, isNotNull: true),
+                FuseColumnDefinition(name: "stringArray", type: .text, isNotNull: true),
+                FuseColumnDefinition(name: "intArray", type: .text, isNotNull: true),
+                FuseColumnDefinition(name: "stringDict", type: .text, isNotNull: true),
+                FuseColumnDefinition(name: "intDict", type: .text, isNotNull: true),
+                FuseColumnDefinition(name: "nestedObject", type: .text, isNotNull: true),
+                FuseColumnDefinition(name: "optionalObject", type: .text, isNotNull: false),
+                FuseColumnDefinition(name: "arrayOfObjects", type: .text, isNotNull: true),
+                FuseColumnDefinition(name: "optionalArray", type: .text, isNotNull: false),
+                FuseColumnDefinition(name: "optionalDict", type: .text, isNotNull: false)
+            ],
+            options: [.ifNotExists]
+        )
+    }
+}
+
 // Explicitly define databaseTableName outside the struct to ensure it overrides the default
 extension MockRecord {
     static var databaseTableName: String { 
         return "mock_records" 
+    }
+}
+
+extension MockUserWithArrays {
+    static var databaseTableName: String { 
+        return "mock_users_with_arrays" 
+    }
+}
+
+extension MockUserWithMaps {
+    static var databaseTableName: String { 
+        return "mock_users_with_maps" 
+    }
+}
+
+extension MockEmployee {
+    static var databaseTableName: String { 
+        return "mock_employees" 
+    }
+}
+
+extension MockComplexRecord {
+    static var databaseTableName: String { 
+        return "mock_complex_records" 
     }
 }
 
@@ -52,16 +242,7 @@ class FuseDatabaseManagerTests: XCTestCase {
         self.dbManager = manager
         
         // Define and create a table for MockRecord
-        let tableDefinition = FuseTableDefinition(
-            name: MockRecord.databaseTableName,
-            columns: [
-                FuseColumnDefinition(name: "id", type: .integer, isPrimaryKey: true),
-                FuseColumnDefinition(name: "name", type: .text, isNotNull: true),
-                FuseColumnDefinition(name: "value", type: .integer, isNotNull: true)
-            ],
-            options: [.ifNotExists]
-        )
-        try dbManager.createTable(tableDefinition)
+        try dbManager.createTable(MockRecord.tableDefinition())
     }
 
     override func tearDownWithError() throws {
@@ -290,14 +471,14 @@ class FuseDatabaseManagerTests: XCTestCase {
             
             // 使用 MockSecretData 讀取結果
             struct MockSecretData: FuseDatabaseRecord {
-                static var databaseTableName: String = "encrypted_test_table"
-                static var _fuseidField: String = "id"
+                nonisolated(unsafe) static var databaseTableName: String = "encrypted_test_table"
+                nonisolated(unsafe) static var _fuseidField: String = "id"
                 
                 var id: Int64
                 var secret_data: String
                 
                 /// Table definition for this record type
-                var tableDefinition: FuseTableDefinition {
+                static func tableDefinition() -> FuseTableDefinition {
                     return FuseTableDefinition(
                         name: Self.databaseTableName,
                         columns: [
@@ -363,14 +544,14 @@ class FuseDatabaseManagerTests: XCTestCase {
             
             // 再次定義用於讀取的結構
             struct MockSecretData: FuseDatabaseRecord {
-                static var databaseTableName: String = "encrypted_test_table"
-                static var _fuseidField: String = "id"
+                nonisolated(unsafe) static var databaseTableName: String = "encrypted_test_table"
+                nonisolated(unsafe) static var _fuseidField: String = "id"
                 
                 var id: Int64
                 var secret_data: String
                 
                 /// Table definition for this record type
-                var tableDefinition: FuseTableDefinition {
+                static func tableDefinition() -> FuseTableDefinition {
                     return FuseTableDefinition(
                         name: Self.databaseTableName,
                         columns: [
@@ -750,16 +931,7 @@ class FuseDatabaseManagerTests: XCTestCase {
         )
         
         // Create MockRecord table in the encrypted database
-        let tableDefinition = FuseTableDefinition(
-            name: MockRecord.databaseTableName,
-            columns: [
-                FuseColumnDefinition(name: "id", type: .integer, isPrimaryKey: true),
-                FuseColumnDefinition(name: "name", type: .text, isNotNull: true),
-                FuseColumnDefinition(name: "value", type: .integer, isNotNull: true)
-            ],
-            options: [.ifNotExists]
-        )
-        try encryptedDBManager.createTable(tableDefinition)
+        try encryptedDBManager.createTable(MockRecord.tableDefinition())
         
         // Test CREATE (Add records)
         let testRecord1 = MockRecord(id: 1, name: "Encrypted Record 1", value: 1001)
@@ -835,16 +1007,7 @@ class FuseDatabaseManagerTests: XCTestCase {
         )
         
         // Create MockRecord table
-        let tableDefinition = FuseTableDefinition(
-            name: MockRecord.databaseTableName,
-            columns: [
-                FuseColumnDefinition(name: "id", type: .integer, isPrimaryKey: true),
-                FuseColumnDefinition(name: "name", type: .text, isNotNull: true),
-                FuseColumnDefinition(name: "value", type: .integer, isNotNull: true)
-            ],
-            options: [.ifNotExists]
-        )
-        try encryptedDBManager.createTable(tableDefinition)
+        try encryptedDBManager.createTable(MockRecord.tableDefinition())
         
         // Add test data
         let testRecords = [
@@ -1001,23 +1164,23 @@ class FuseDatabaseManagerTests: XCTestCase {
             
             // Verify data exists
             struct TestRecord: FuseDatabaseRecord {
-                static var databaseTableName: String = "test_table"
-                static var _fuseidField: String = "id"
+                nonisolated(unsafe) static var databaseTableName: String = "test_table"
+                nonisolated(unsafe) static var _fuseidField: String = "id"
                 
                 var id: Int64
                 var data: String
                 
-                /// Table definition for this record type
-                var tableDefinition: FuseTableDefinition {
-                    return FuseTableDefinition(
-                        name: Self.databaseTableName,
-                        columns: [
-                            FuseColumnDefinition(name: "id", type: .integer, isPrimaryKey: true),
-                            FuseColumnDefinition(name: "data", type: .text, isNotNull: true)
-                        ],
-                        options: [.ifNotExists]
-                    )
-                }
+                            /// Table definition for this record type
+            static func tableDefinition() -> FuseTableDefinition {
+                return FuseTableDefinition(
+                    name: Self.databaseTableName,
+                    columns: [
+                        FuseColumnDefinition(name: "id", type: .integer, isPrimaryKey: true),
+                        FuseColumnDefinition(name: "data", type: .text, isNotNull: true)
+                    ],
+                    options: [.ifNotExists]
+                )
+            }
             }
             
             let records: [TestRecord] = try reopenedDBManager.fetch(of: TestRecord.self)
@@ -1101,8 +1264,8 @@ class FuseDatabaseManagerTests: XCTestCase {
     func testDateDecodingIssue() throws {
         // Create a test record that mimics the Note structure to reproduce the date decoding issue
         struct NoteTestRecord: FuseDatabaseRecord {
-            static var _fuseidField: String = "id"
-            static var databaseTableName: String = "note_test_records"
+            nonisolated(unsafe) static var _fuseidField: String = "id"
+            nonisolated(unsafe) static var databaseTableName: String = "note_test_records"
             
             let id: String
             let title: String
@@ -1121,7 +1284,7 @@ class FuseDatabaseManagerTests: XCTestCase {
             }
             
             /// Table definition for this record type
-            var tableDefinition: FuseTableDefinition {
+            static func tableDefinition() -> FuseTableDefinition {
                 return FuseTableDefinition(
                     name: Self.databaseTableName,
                     columns: [
@@ -1135,22 +1298,11 @@ class FuseDatabaseManagerTests: XCTestCase {
                     options: [.ifNotExists]
                 )
             }
+            
+
+
         }
-        
-        // Create table for NoteTestRecord
-        let noteTableDefinition = FuseTableDefinition(
-            name: NoteTestRecord.databaseTableName,
-            columns: [
-                FuseColumnDefinition(name: "id", type: .text, isPrimaryKey: true, isNotNull: true),
-                FuseColumnDefinition(name: "title", type: .text, isNotNull: true),
-                FuseColumnDefinition(name: "content", type: .text, isNotNull: true),
-                FuseColumnDefinition(name: "createdAt", type: .date, isNotNull: true),
-                FuseColumnDefinition(name: "hasAttachment", type: .boolean, isNotNull: true),
-                FuseColumnDefinition(name: "attachmentPath", type: .text)
-            ],
-            options: [.ifNotExists]
-        )
-        try dbManager.createTable(noteTableDefinition)
+        try dbManager.createTable(NoteTestRecord.tableDefinition())
         
         // Create and add a test record with a specific date
         let testDate = Date(timeIntervalSince1970: 1678886400) // March 15, 2023, 8:00:00 AM UTC
@@ -1198,8 +1350,8 @@ class FuseDatabaseManagerTests: XCTestCase {
     func testSimpleDateHandling() throws {
         // Very simple test record with just a date
         struct SimpleDateRecord: FuseDatabaseRecord {
-            static var _fuseidField: String = "id"
-            static var databaseTableName: String = "simple_date_test"
+            nonisolated(unsafe) static var _fuseidField: String = "id"
+            nonisolated(unsafe) static var databaseTableName: String = "simple_date_test"
             
             let id: String
             let testDate: Date
@@ -1210,7 +1362,7 @@ class FuseDatabaseManagerTests: XCTestCase {
             }
             
             /// Table definition for this record type
-            var tableDefinition: FuseTableDefinition {
+            static func tableDefinition() -> FuseTableDefinition {
                 return FuseTableDefinition(
                     name: Self.databaseTableName,
                     columns: [
@@ -1223,15 +1375,7 @@ class FuseDatabaseManagerTests: XCTestCase {
         }
         
         // Create table
-        let tableDefinition = FuseTableDefinition(
-            name: SimpleDateRecord.databaseTableName,
-            columns: [
-                FuseColumnDefinition(name: "id", type: .text, isPrimaryKey: true, isNotNull: true),
-                FuseColumnDefinition(name: "testDate", type: .date, isNotNull: true)
-            ],
-            options: [.ifNotExists]
-        )
-        try dbManager.createTable(tableDefinition)
+        try dbManager.createTable(SimpleDateRecord.tableDefinition())
         
         // Test with a known date
         let knownDate = Date(timeIntervalSince1970: 1678886400) // March 15, 2023
@@ -1268,8 +1412,8 @@ class FuseDatabaseManagerTests: XCTestCase {
     func testRealNoteModelDateHandling() throws {
         // Replicate the exact Note model structure from the example app
         struct TestNote: FuseDatabaseRecord {
-            static var _fuseidField: String = "id"
-            static var databaseTableName: String = "test_notes"
+            nonisolated(unsafe) static var _fuseidField: String = "id"
+            nonisolated(unsafe) static var databaseTableName: String = "test_notes"
             
             var id: String
             var title: String
@@ -1293,7 +1437,7 @@ class FuseDatabaseManagerTests: XCTestCase {
             }
             
             /// Table definition for this record type
-            var tableDefinition: FuseTableDefinition {
+            static func tableDefinition() -> FuseTableDefinition {
                 return FuseTableDefinition(
                     name: Self.databaseTableName,
                     columns: [
@@ -1309,18 +1453,7 @@ class FuseDatabaseManagerTests: XCTestCase {
         }
         
         // Create the exact table structure as the Note model
-        let noteTableDefinition = FuseTableDefinition(
-            name: TestNote.databaseTableName,
-            columns: [
-                FuseColumnDefinition(name: "id", type: .text, isPrimaryKey: true, isNotNull: true),
-                FuseColumnDefinition(name: "title", type: .text, isNotNull: true),
-                FuseColumnDefinition(name: "content", type: .text, isNotNull: true),
-                FuseColumnDefinition(name: "createdAt", type: .date, isNotNull: true),
-                FuseColumnDefinition(name: "hasAttachment", type: .boolean, isNotNull: true, defaultValue: "0"),
-                FuseColumnDefinition(name: "attachmentPath", type: .text)
-            ]
-        )
-        try dbManager.createTable(noteTableDefinition)
+        try dbManager.createTable(TestNote.tableDefinition())
         
         // Create test data that mimics real app usage
         let testDate = Date() // Use current date like the real app
@@ -1377,8 +1510,8 @@ class FuseDatabaseManagerTests: XCTestCase {
     func testDebugGRDBDateStorage() throws {
         // Simple test record with just essential fields to isolate the problem
         struct DebugRecord: FuseDatabaseRecord {
-            static var _fuseidField: String = "id"
-            static var databaseTableName: String = "debug_records"
+            nonisolated(unsafe) static var _fuseidField: String = "id"
+            nonisolated(unsafe) static var databaseTableName: String = "debug_records"
             
             let id: String
             let createdAt: Date
@@ -1389,7 +1522,7 @@ class FuseDatabaseManagerTests: XCTestCase {
             }
             
             /// Table definition for this record type
-            var tableDefinition: FuseTableDefinition {
+            static func tableDefinition() -> FuseTableDefinition {
                 return FuseTableDefinition(
                     name: Self.databaseTableName,
                     columns: [
@@ -1402,15 +1535,7 @@ class FuseDatabaseManagerTests: XCTestCase {
         }
         
         // Create table
-        let tableDefinition = FuseTableDefinition(
-            name: DebugRecord.databaseTableName,
-            columns: [
-                FuseColumnDefinition(name: "id", type: .text, isPrimaryKey: true, isNotNull: true),
-                FuseColumnDefinition(name: "createdAt", type: .date, isNotNull: true)
-            ],
-            options: [.ifNotExists]
-        )
-        try dbManager.createTable(tableDefinition)
+        try dbManager.createTable(DebugRecord.tableDefinition())
         
         // Test with a specific known date
         let testDate = Date(timeIntervalSince1970: 1640995200) // Jan 1, 2022, 00:00:00 UTC
@@ -1488,8 +1613,8 @@ class FuseDatabaseManagerTests: XCTestCase {
     func testGRDBNativeCodableSupport() throws {
         // Test record that uses GRDB's native Codable support directly
         struct NativeCodableRecord: FuseDatabaseRecord {
-            static var _fuseidField: String = "id"
-            static var databaseTableName: String = "native_codable_test"
+            nonisolated(unsafe) static var _fuseidField: String = "id"
+            nonisolated(unsafe) static var databaseTableName: String = "native_codable_test"
             
             let id: String
             let title: String
@@ -1508,7 +1633,7 @@ class FuseDatabaseManagerTests: XCTestCase {
             }
             
             /// Table definition for this record type
-            var tableDefinition: FuseTableDefinition {
+            static func tableDefinition() -> FuseTableDefinition {
                 return FuseTableDefinition(
                     name: Self.databaseTableName,
                     columns: [
@@ -1525,19 +1650,7 @@ class FuseDatabaseManagerTests: XCTestCase {
         }
         
         // Create table
-        let tableDefinition = FuseTableDefinition(
-            name: NativeCodableRecord.databaseTableName,
-            columns: [
-                FuseColumnDefinition(name: "id", type: .text, isPrimaryKey: true, isNotNull: true),
-                FuseColumnDefinition(name: "title", type: .text, isNotNull: true),
-                FuseColumnDefinition(name: "content", type: .text, isNotNull: true),
-                FuseColumnDefinition(name: "createdAt", type: .date, isNotNull: true),
-                FuseColumnDefinition(name: "hasAttachment", type: .boolean, isNotNull: true),
-                FuseColumnDefinition(name: "attachmentPath", type: .text)
-            ],
-            options: [.ifNotExists]
-        )
-        try dbManager.createTable(tableDefinition)
+        try dbManager.createTable(NativeCodableRecord.tableDefinition())
         
         // Create test record
         let testDate = Date(timeIntervalSince1970: 1678886400) // March 15, 2023
@@ -1592,5 +1705,471 @@ class FuseDatabaseManagerTests: XCTestCase {
         } else {
             XCTFail("Should have fetched a record")
         }
+    }
+    
+    // MARK: - Complex Data Type Tests
+    
+    func testArrayTypeHandling() throws {
+        // Create table for array testing
+        try dbManager.createTable(MockUserWithArrays.tableDefinition())
+        
+        // Create test record with various array types
+        let testUser = MockUserWithArrays(
+            id: 1,
+            name: "Array Test User",
+            tags: ["swift", "ios", "development"],
+            scores: [95, 87, 92, 88],
+            notes: ["First note", "Second note", "Third note"]
+        )
+        
+        print("\n🧪 Testing Array Type Handling...")
+        print("   Original user:")
+        print("     Tags: \(testUser.tags)")
+        print("     Scores: \(testUser.scores)")
+        print("     Notes: \(testUser.notes ?? [])")
+        
+        // Test toDatabaseValues conversion
+        let dbValues = testUser.toDatabaseValues()
+        print("   Database values:")
+        print("     tags: \(dbValues["tags"] ?? "nil")")
+        print("     scores: \(dbValues["scores"] ?? "nil")")
+        print("     notes: \(dbValues["notes"] ?? "nil")")
+        
+        // Add to database
+        try dbManager.add(testUser)
+        print("✅ Array record added successfully")
+        
+        // Fetch back from database
+        let fetchedUsers: [MockUserWithArrays] = try dbManager.fetch(of: MockUserWithArrays.self)
+        print("✅ Array records fetched: \(fetchedUsers.count)")
+        
+        XCTAssertEqual(fetchedUsers.count, 1, "Should have exactly one user")
+        
+        guard let fetchedUser = fetchedUsers.first else {
+            XCTFail("Should have fetched a user")
+            return
+        }
+        
+        print("   Fetched user:")
+        print("     Tags: \(fetchedUser.tags)")
+        print("     Scores: \(fetchedUser.scores)")
+        print("     Notes: \(fetchedUser.notes ?? [])")
+        
+        // Verify all array fields
+        XCTAssertEqual(fetchedUser.id, testUser.id)
+        XCTAssertEqual(fetchedUser.name, testUser.name)
+        XCTAssertEqual(fetchedUser.tags, testUser.tags)
+        XCTAssertEqual(fetchedUser.scores, testUser.scores)
+        XCTAssertEqual(fetchedUser.notes, testUser.notes)
+    }
+    
+    func testOptionalArrayHandling() throws {
+        // Create table for array testing
+        try dbManager.createTable(MockUserWithArrays.tableDefinition())
+        
+        // Test with nil optional array
+        let testUserWithNilArray = MockUserWithArrays(
+            id: 2,
+            name: "Nil Array Test",
+            tags: ["tag1"],
+            scores: [100],
+            notes: nil
+        )
+        
+        print("\n🧪 Testing Optional Array (nil) Handling...")
+        try dbManager.add(testUserWithNilArray)
+        
+        let fetchedNilUsers: [MockUserWithArrays] = try dbManager.fetch(of: MockUserWithArrays.self, filters: [
+            FuseQueryFilter.equals(field: "id", value: 2)
+        ])
+        
+        XCTAssertEqual(fetchedNilUsers.count, 1)
+        XCTAssertNil(fetchedNilUsers.first?.notes, "Notes should be nil")
+        
+        // Test with empty optional array
+        let testUserWithEmptyArray = MockUserWithArrays(
+            id: 3,
+            name: "Empty Array Test",
+            tags: ["tag1"],
+            scores: [100],
+            notes: []
+        )
+        
+        print("🧪 Testing Optional Array (empty) Handling...")
+        try dbManager.add(testUserWithEmptyArray)
+        
+        let fetchedEmptyUsers: [MockUserWithArrays] = try dbManager.fetch(of: MockUserWithArrays.self, filters: [
+            FuseQueryFilter.equals(field: "id", value: 3)
+        ])
+        
+        XCTAssertEqual(fetchedEmptyUsers.count, 1)
+        XCTAssertEqual(fetchedEmptyUsers.first?.notes, [], "Notes should be empty array")
+    }
+    
+    func testDictionaryTypeHandling() throws {
+        // Create table for dictionary testing
+        try dbManager.createTable(MockUserWithMaps.tableDefinition())
+        
+        // Create test record with various dictionary types
+        let testUser = MockUserWithMaps(
+            id: 1,
+            name: "Dict Test User",
+            metadata: [
+                "department": "Engineering",
+                "location": "Taipei",
+                "role": "Senior Developer"
+            ],
+            settings: [
+                "theme": 1,
+                "notifications": 1,
+                "autoSave": 0
+            ],
+            preferences: [
+                "language": "zh-TW",
+                "timezone": "Asia/Taipei"
+            ]
+        )
+        
+        print("\n🧪 Testing Dictionary Type Handling...")
+        print("   Original user:")
+        print("     Metadata: \(testUser.metadata)")
+        print("     Settings: \(testUser.settings)")
+        print("     Preferences: \(testUser.preferences ?? [:])")
+        
+        // Test toDatabaseValues conversion
+        let dbValues = testUser.toDatabaseValues()
+        print("   Database values:")
+        print("     metadata: \(dbValues["metadata"] ?? "nil")")
+        print("     settings: \(dbValues["settings"] ?? "nil")")
+        print("     preferences: \(dbValues["preferences"] ?? "nil")")
+        
+        // Add to database
+        try dbManager.add(testUser)
+        print("✅ Dictionary record added successfully")
+        
+        // Fetch back from database
+        let fetchedUsers: [MockUserWithMaps] = try dbManager.fetch(of: MockUserWithMaps.self)
+        print("✅ Dictionary records fetched: \(fetchedUsers.count)")
+        
+        XCTAssertEqual(fetchedUsers.count, 1, "Should have exactly one user")
+        
+        guard let fetchedUser = fetchedUsers.first else {
+            XCTFail("Should have fetched a user")
+            return
+        }
+        
+        print("   Fetched user:")
+        print("     Metadata: \(fetchedUser.metadata)")
+        print("     Settings: \(fetchedUser.settings)")
+        print("     Preferences: \(fetchedUser.preferences ?? [:])")
+        
+        // Verify all dictionary fields
+        XCTAssertEqual(fetchedUser.id, testUser.id)
+        XCTAssertEqual(fetchedUser.name, testUser.name)
+        XCTAssertEqual(fetchedUser.metadata, testUser.metadata)
+        XCTAssertEqual(fetchedUser.settings, testUser.settings)
+        XCTAssertEqual(fetchedUser.preferences, testUser.preferences)
+    }
+    
+    func testOptionalDictionaryHandling() throws {
+        // Create table for dictionary testing
+        try dbManager.createTable(MockUserWithMaps.tableDefinition())
+        
+        // Test with nil optional dictionary
+        let testUserWithNilDict = MockUserWithMaps(
+            id: 2,
+            name: "Nil Dict Test",
+            metadata: ["key": "value"],
+            settings: ["setting": 1],
+            preferences: nil
+        )
+        
+        print("\n🧪 Testing Optional Dictionary (nil) Handling...")
+        try dbManager.add(testUserWithNilDict)
+        
+        let fetchedNilUsers: [MockUserWithMaps] = try dbManager.fetch(of: MockUserWithMaps.self, filters: [
+            FuseQueryFilter.equals(field: "id", value: 2)
+        ])
+        
+        XCTAssertEqual(fetchedNilUsers.count, 1)
+        XCTAssertNil(fetchedNilUsers.first?.preferences, "Preferences should be nil")
+        
+        // Test with empty optional dictionary
+        let testUserWithEmptyDict = MockUserWithMaps(
+            id: 3,
+            name: "Empty Dict Test",
+            metadata: ["key": "value"],
+            settings: ["setting": 1],
+            preferences: [:]
+        )
+        
+        print("🧪 Testing Optional Dictionary (empty) Handling...")
+        try dbManager.add(testUserWithEmptyDict)
+        
+        let fetchedEmptyUsers: [MockUserWithMaps] = try dbManager.fetch(of: MockUserWithMaps.self, filters: [
+            FuseQueryFilter.equals(field: "id", value: 3)
+        ])
+        
+        XCTAssertEqual(fetchedEmptyUsers.count, 1)
+        XCTAssertEqual(fetchedEmptyUsers.first?.preferences, [:], "Preferences should be empty dictionary")
+    }
+    
+    func testNestedObjectHandling() throws {
+        // Create table for nested object testing
+        try dbManager.createTable(MockEmployee.tableDefinition())
+        
+        // Create test record with nested objects
+        let address = Address(street: "123 Main St", city: "Taipei", zipCode: "10001")
+        let contact = ContactInfo(email: "john@example.com", phone: "+886-123-456-789")
+        let emergencyContacts = [
+            ContactInfo(email: "mom@example.com", phone: "+886-987-654-321"),
+            ContactInfo(email: "dad@example.com", phone: nil),
+            ContactInfo(email: "sister@example.com", phone: "+886-555-123-456")
+        ]
+        
+        let testEmployee = MockEmployee(
+            id: 1,
+            name: "John Doe",
+            address: address,
+            contactInfo: contact,
+            emergencyContacts: emergencyContacts
+        )
+        
+        print("\n🧪 Testing Nested Object Handling...")
+        print("   Original employee:")
+        print("     Address: \(testEmployee.address)")
+        print("     Contact: \(testEmployee.contactInfo?.email ?? "nil")")
+        print("     Emergency contacts: \(testEmployee.emergencyContacts.count)")
+        
+        // Test toDatabaseValues conversion
+        let dbValues = testEmployee.toDatabaseValues()
+        print("   Database values:")
+        print("     address: \(dbValues["address"] ?? "nil")")
+        print("     contactInfo: \(dbValues["contactInfo"] ?? "nil")")
+        print("     emergencyContacts: \(dbValues["emergencyContacts"] ?? "nil")")
+        
+        // Add to database
+        try dbManager.add(testEmployee)
+        print("✅ Nested object record added successfully")
+        
+        // Fetch back from database
+        let fetchedEmployees: [MockEmployee] = try dbManager.fetch(of: MockEmployee.self)
+        print("✅ Nested object records fetched: \(fetchedEmployees.count)")
+        
+        XCTAssertEqual(fetchedEmployees.count, 1, "Should have exactly one employee")
+        
+        guard let fetchedEmployee = fetchedEmployees.first else {
+            XCTFail("Should have fetched an employee")
+            return
+        }
+        
+        print("   Fetched employee:")
+        print("     Address: \(fetchedEmployee.address)")
+        print("     Contact: \(fetchedEmployee.contactInfo?.email ?? "nil")")
+        print("     Emergency contacts: \(fetchedEmployee.emergencyContacts.count)")
+        
+        // Verify all nested object fields
+        XCTAssertEqual(fetchedEmployee.id, testEmployee.id)
+        XCTAssertEqual(fetchedEmployee.name, testEmployee.name)
+        XCTAssertEqual(fetchedEmployee.address, testEmployee.address)
+        XCTAssertEqual(fetchedEmployee.contactInfo, testEmployee.contactInfo)
+        XCTAssertEqual(fetchedEmployee.emergencyContacts, testEmployee.emergencyContacts)
+        
+        // Verify nested object details
+        XCTAssertEqual(fetchedEmployee.address.street, "123 Main St")
+        XCTAssertEqual(fetchedEmployee.address.city, "Taipei")
+        XCTAssertEqual(fetchedEmployee.contactInfo?.email, "john@example.com")
+        XCTAssertEqual(fetchedEmployee.emergencyContacts.count, 3)
+        XCTAssertEqual(fetchedEmployee.emergencyContacts[0].email, "mom@example.com")
+        XCTAssertNil(fetchedEmployee.emergencyContacts[1].phone, "Dad's phone should be nil")
+    }
+    
+    func testOptionalNestedObjectHandling() throws {
+        // Create table for nested object testing
+        try dbManager.createTable(MockEmployee.tableDefinition())
+        
+        // Test with nil optional nested object
+        let address = Address(street: "456 Oak Ave", city: "Kaohsiung", zipCode: "80001")
+        let testEmployeeWithNilContact = MockEmployee(
+            id: 2,
+            name: "Jane Smith",
+            address: address,
+            contactInfo: nil,
+            emergencyContacts: []
+        )
+        
+        print("\n🧪 Testing Optional Nested Object (nil) Handling...")
+        try dbManager.add(testEmployeeWithNilContact)
+        
+        let fetchedNilEmployees: [MockEmployee] = try dbManager.fetch(of: MockEmployee.self, filters: [
+            FuseQueryFilter.equals(field: "id", value: 2)
+        ])
+        
+        XCTAssertEqual(fetchedNilEmployees.count, 1)
+        XCTAssertNil(fetchedNilEmployees.first?.contactInfo, "Contact info should be nil")
+        XCTAssertEqual(fetchedNilEmployees.first?.emergencyContacts, [], "Emergency contacts should be empty")
+    }
+    
+    func testComplexMixedTypes() throws {
+        // Create table for complex mixed types testing
+        try dbManager.createTable(MockComplexRecord.tableDefinition())
+        
+        // Create test record with all types of complex data
+        let address = Address(street: "789 Pine St", city: "Tainan", zipCode: "70001")
+        let contact = ContactInfo(email: "complex@example.com", phone: "+886-666-777-888")
+        let arrayOfContacts = [
+            ContactInfo(email: "contact1@example.com", phone: "+886-111-222-333"),
+            ContactInfo(email: "contact2@example.com", phone: nil)
+        ]
+        
+        let complexRecord = MockComplexRecord(
+            id: 1,
+            name: "Complex Test Record",
+            stringArray: ["apple", "banana", "cherry"],
+            intArray: [10, 20, 30, 40],
+            stringDict: ["color": "red", "size": "large", "material": "cotton"],
+            intDict: ["width": 100, "height": 200, "depth": 50],
+            nestedObject: address,
+            optionalObject: contact,
+            arrayOfObjects: arrayOfContacts,
+            optionalArray: ["optional1", "optional2"],
+            optionalDict: ["opt1": "value1", "opt2": "value2"]
+        )
+        
+        print("\n🧪 Testing Complex Mixed Types...")
+        print("   Original record with all complex types")
+        
+        // Add to database
+        try dbManager.add(complexRecord)
+        print("✅ Complex record added successfully")
+        
+        // Fetch back from database
+        let fetchedRecords: [MockComplexRecord] = try dbManager.fetch(of: MockComplexRecord.self)
+        print("✅ Complex records fetched: \(fetchedRecords.count)")
+        
+        XCTAssertEqual(fetchedRecords.count, 1, "Should have exactly one complex record")
+        
+        guard let fetchedRecord = fetchedRecords.first else {
+            XCTFail("Should have fetched a complex record")
+            return
+        }
+        
+        // Verify all complex fields
+        XCTAssertEqual(fetchedRecord.id, complexRecord.id)
+        XCTAssertEqual(fetchedRecord.name, complexRecord.name)
+        
+        // Array verification
+        XCTAssertEqual(fetchedRecord.stringArray, complexRecord.stringArray)
+        XCTAssertEqual(fetchedRecord.intArray, complexRecord.intArray)
+        
+        // Dictionary verification
+        XCTAssertEqual(fetchedRecord.stringDict, complexRecord.stringDict)
+        XCTAssertEqual(fetchedRecord.intDict, complexRecord.intDict)
+        
+        // Nested object verification
+        XCTAssertEqual(fetchedRecord.nestedObject, complexRecord.nestedObject)
+        XCTAssertEqual(fetchedRecord.optionalObject, complexRecord.optionalObject)
+        
+        // Array of objects verification
+        XCTAssertEqual(fetchedRecord.arrayOfObjects, complexRecord.arrayOfObjects)
+        XCTAssertEqual(fetchedRecord.arrayOfObjects.count, 2)
+        XCTAssertEqual(fetchedRecord.arrayOfObjects[0].email, "contact1@example.com")
+        XCTAssertNil(fetchedRecord.arrayOfObjects[1].phone)
+        
+        // Optional complex types verification
+        XCTAssertEqual(fetchedRecord.optionalArray, complexRecord.optionalArray)
+        XCTAssertEqual(fetchedRecord.optionalDict, complexRecord.optionalDict)
+        
+        print("✅ All complex type assertions passed!")
+    }
+    
+    func testComplexTypesWithNilOptionals() throws {
+        // Create table for complex mixed types testing
+        try dbManager.createTable(MockComplexRecord.tableDefinition())
+        
+        // Test with all optional fields set to nil
+        let address = Address(street: "999 Test Ave", city: "Taichung", zipCode: "40001")
+        
+        let nilOptionalRecord = MockComplexRecord(
+            id: 2,
+            name: "Nil Optionals Test",
+            stringArray: ["required1"],
+            intArray: [1],
+            stringDict: ["key": "value"],
+            intDict: ["num": 42],
+            nestedObject: address,
+            optionalObject: nil,
+            arrayOfObjects: [],
+            optionalArray: nil,
+            optionalDict: nil
+        )
+        
+        print("\n🧪 Testing Complex Types with Nil Optionals...")
+        
+        // Add to database
+        try dbManager.add(nilOptionalRecord)
+        print("✅ Nil optionals record added successfully")
+        
+        // Fetch back from database
+        let fetchedRecords: [MockComplexRecord] = try dbManager.fetch(of: MockComplexRecord.self, filters: [
+            FuseQueryFilter.equals(field: "id", value: 2)
+        ])
+        
+        XCTAssertEqual(fetchedRecords.count, 1, "Should have exactly one record")
+        
+        guard let fetchedRecord = fetchedRecords.first else {
+            XCTFail("Should have fetched a record")
+            return
+        }
+        
+        // Verify required fields are preserved
+        XCTAssertEqual(fetchedRecord.stringArray, ["required1"])
+        XCTAssertEqual(fetchedRecord.intArray, [1])
+        XCTAssertEqual(fetchedRecord.stringDict, ["key": "value"])
+        XCTAssertEqual(fetchedRecord.intDict, ["num": 42])
+        XCTAssertEqual(fetchedRecord.nestedObject, address)
+        XCTAssertEqual(fetchedRecord.arrayOfObjects, [])
+        
+        // Verify optional fields are nil
+        XCTAssertNil(fetchedRecord.optionalObject, "Optional object should be nil")
+        XCTAssertNil(fetchedRecord.optionalArray, "Optional array should be nil")
+        XCTAssertNil(fetchedRecord.optionalDict, "Optional dictionary should be nil")
+        
+        print("✅ All nil optional assertions passed!")
+    }
+    
+    func testComplexTypeFiltering() throws {
+        // Create table and add test data
+        try dbManager.createTable(MockUserWithArrays.tableDefinition())
+        
+        let user1 = MockUserWithArrays(id: 1, name: "User One", tags: ["swift", "ios"], scores: [90, 85])
+        let user2 = MockUserWithArrays(id: 2, name: "User Two", tags: ["python", "web"], scores: [95, 92])
+        let user3 = MockUserWithArrays(id: 3, name: "User Three", tags: ["swift", "macos"], scores: [88, 94])
+        
+        try dbManager.add(user1)
+        try dbManager.add(user2)
+        try dbManager.add(user3)
+        
+        print("\n🧪 Testing Complex Type Filtering...")
+        
+        // Test filtering - should work normally since filtering is done on primary fields
+        let swiftUsers: [MockUserWithArrays] = try dbManager.fetch(of: MockUserWithArrays.self, filters: [
+            FuseQueryFilter.like(field: "name", value: "%User%")
+        ])
+        
+        XCTAssertEqual(swiftUsers.count, 3, "Should find all users with 'User' in name")
+        
+        // Test sorting
+        let sortedUsers: [MockUserWithArrays] = try dbManager.fetch(
+            of: MockUserWithArrays.self, 
+            sort: FuseQuerySort(field: "name", order: .ascending)
+        )
+        
+        XCTAssertEqual(sortedUsers.count, 3)
+        XCTAssertEqual(sortedUsers[0].name, "User One")
+        XCTAssertEqual(sortedUsers[1].name, "User Three")
+        XCTAssertEqual(sortedUsers[2].name, "User Two")
+        
+        print("✅ Complex type filtering and sorting work correctly!")
     }
 } 

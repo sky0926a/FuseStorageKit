@@ -16,4 +16,17 @@ public struct FuseConstants {
     /// This filename is used when creating new database instances without specifying
     /// a custom path, providing a consistent default database file name.
     public static let databaseName: String = "fuse.sqlite"
+    
+    
+    static func getIso8601DataFormatter() -> ISO8601DateFormatter {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds, .withDashSeparatorInDate, .withColonSeparatorInTimeZone]
+        return f
+    }
+    
+    static func getDataFormatter() -> DateFormatter {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd HH:mm:ss.SSS"
+        return f
+    }
 }

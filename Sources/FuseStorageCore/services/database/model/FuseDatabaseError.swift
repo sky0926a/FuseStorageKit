@@ -5,7 +5,7 @@ import Foundation
 /// This error type provides specific error cases for database operations, helping
 /// developers identify and handle different types of database-related failures
 /// with appropriate error messages and recovery strategies.
-public enum FuseDatabaseError: Error {
+public enum FuseDatabaseError: Error, Sendable {
     /// Indicates that the record type is not suitable for database operations
     /// 
     /// This error occurs when attempting to use a type that doesn't conform to
@@ -43,4 +43,11 @@ public enum FuseDatabaseError: Error {
     /// importing a specific database implementation module.
     /// - Parameter message: A descriptive message about the missing implementation
     case noImplementationAvailable(String)
+    
+    /// Indicates that data conversion between database and Swift types failed
+    /// 
+    /// This error occurs when there's a failure in converting database values
+    /// to Swift types or vice versa, typically during record decoding/encoding.
+    /// - Parameter message: A descriptive message about the conversion failure
+    case conversionFailed(String)
 }

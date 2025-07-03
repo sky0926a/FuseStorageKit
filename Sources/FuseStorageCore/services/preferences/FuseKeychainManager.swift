@@ -44,7 +44,7 @@ public class FuseKeychainManager: FusePreferencesManageable {
         self.service = service
         self.accessGroup = accessGroup
         self.accessibility = accessibility
-        self.dateFormatter = ISO8601DateFormatter()
+        self.dateFormatter = FuseConstants.getIso8601DataFormatter()
         // configure once
         self.jsonEncoder = JSONEncoder()
         self.jsonEncoder.dateEncodingStrategy = .iso8601

@@ -150,7 +150,7 @@ That's it! You now have a working storage system. Continue reading for database 
 - **Multiple Managers** - Support multiple instances with different configurations
 - **AES-256 Encryption** - Enterprise-grade database security via SQLCipher
 - **Type-Safe** - Leverages Swift generics and Codable protocol
-- **Cross-Platform** - Works on iOS, macOS, tvOS, and watchOS
+- **Cross-Platform** - Works on iOS and macOS
 - **Modular Design** - Pluggable components via protocols
 
 ## Builder Options Reference
@@ -161,235 +161,247 @@ FuseStorageKit provides comprehensive configuration options for each storage com
 
 #### SQLite Database
 ```swift
-// Standard SQLite database with default name
-.with(database: .sqlite())
+// Basic configurations
+let storage = try FuseStorageBuilder()
+    .with(database: .sqlite())                              // Standard SQLite with default name
+    .with(database: .sqlite("myapp.db"))                   // Custom filename
+    .build()
 
-// SQLite database with custom filename
-.with(database: .sqlite("myapp.db"))
-
-// Encrypted SQLite database with standard security
-.with(database: .sqlite("secure.db", encryptions: EncryptionOptions.standard(passphrase: "mySecretKey")))
-
-// Encrypted SQLite database with high security
-.with(database: .sqlite("secure.db", encryptions: EncryptionOptions.high(passphrase: "mySecretKey")))
-
-// Encrypted SQLite database with performance optimization
-.with(database: .sqlite("fast.db", encryptions: EncryptionOptions.performance(passphrase: "mySecretKey")))
+// Encrypted configurations
+let secureStorage = try FuseStorageBuilder()
+    .with(database: .sqlite("secure.db", encryptions: EncryptionOptions.standard(passphrase: "mySecretKey")))   // Standard security
+    .with(database: .sqlite("secure.db", encryptions: EncryptionOptions.high(passphrase: "mySecretKey")))       // High security
+    .with(database: .sqlite("fast.db", encryptions: EncryptionOptions.performance(passphrase: "mySecretKey"))) // Performance optimized
+    .build()
 
 // Custom encryption configuration
 let customEncryption = EncryptionOptions("mySecretKey")
     .pageSize(4096)
     .kdfIter(64000)
     .memorySecurity(true)
-.with(database: .sqlite("custom.db", encryptions: customEncryption))
+
+let customStorage = try FuseStorageBuilder()
+    .with(database: .sqlite("custom.db", encryptions: customEncryption))
+    .build()
 ```
 
 #### Custom Database
 ```swift
-// Custom database implementation
-.with(database: .custom("mydb", database: MyCustomDatabaseManager()))
+// Note: Implement your custom database manager conforming to FuseDatabaseManageable
+class MyCustomDatabaseManager: FuseDatabaseManageable {
+    // Implementation details...
+}
+
+let storage = try FuseStorageBuilder()
+    .with(database: .custom("mydb", database: MyCustomDatabaseManager()))
+    .build()
 ```
 
 ### Preferences Options
 
 #### UserDefaults Configuration
 ```swift
-// Standard UserDefaults
-.with(preferences: .userDefaults())
-
-// UserDefaults with nil suite (uses standard)
-.with(preferences: .userDefaults(nil))
-
-// UserDefaults with custom suite name
-.with(preferences: .userDefaults("com.myapp.settings"))
-
-// UserDefaults for app groups (shared between apps)
-.with(preferences: .userDefaults("group.com.mycompany.myappgroup"))
+let storage = try FuseStorageBuilder()
+    .with(preferences: .userDefaults())                                            // Standard UserDefaults
+    .with(preferences: .userDefaults(nil))                                         // Explicit nil suite
+    .with(preferences: .userDefaults("com.myapp.settings"))                       // Custom suite
+    .with(preferences: .userDefaults("group.com.mycompany.myappgroup"))           // App group sharing
+    .build()
 ```
 
 #### Keychain Configuration
 ```swift
-// Keychain with service name and default accessibility
-.with(preferences: .keychain("com.myapp.secure"))
+let storage = try FuseStorageBuilder()
+    .with(preferences: .keychain("com.myapp.secure"))                                                                      // Default accessibility
+    .with(preferences: .keychain("com.myapp.tokens", accessibility: .whenUnlockedThisDeviceOnly))                        // Custom accessibility
+    .with(preferences: .keychain("com.myapp.shared", accessGroup: "TEAMID.com.mycompany.shared"))                      // Access group sharing
+    .build()
 
-// Keychain with custom accessibility level
-.with(preferences: .keychain("com.myapp.tokens", accessibility: .whenUnlockedThisDeviceOnly))
-
-// Keychain with access group for sharing between apps
-.with(preferences: .keychain("com.myapp.shared", accessGroup: "TEAMID.com.mycompany.shared"))
-
-// Available keychain accessibility options:
-.with(preferences: .keychain("service", accessibility: .whenUnlocked))          // Default - accessible when device unlocked
-.with(preferences: .keychain("service", accessibility: .afterFirstUnlock))     // Accessible after first unlock
-.with(preferences: .keychain("service", accessibility: .whenUnlockedThisDeviceOnly))     // This device only
-.with(preferences: .keychain("service", accessibility: .afterFirstUnlockThisDeviceOnly)) // After first unlock, this device only
+// Available accessibility options:
+// .whenUnlocked                    - Default: accessible when device unlocked
+// .afterFirstUnlock               - Accessible after first unlock
+// .whenUnlockedThisDeviceOnly     - Device-specific, unlocked access
+// .afterFirstUnlockThisDeviceOnly - Device-specific, after first unlock
 ```
 
 #### Custom Preferences
 ```swift
-// Custom preferences implementation
-.with(preferences: .custom("myprefs", preferences: MyCustomPreferencesManager()))
+// Note: Implement your custom preferences manager conforming to FusePreferencesManageable
+class MyCustomPreferencesManager: FusePreferencesManageable {
+    // Implementation details...
+}
+
+let storage = try FuseStorageBuilder()
+    .with(preferences: .custom("myprefs", preferences: MyCustomPreferencesManager()))
+    .build()
 ```
 
 ### File Options
 
 #### Standard Directories
 ```swift
-// Documents directory (backed up by iCloud/iTunes)
-.with(file: .document())                           // Uses default folder name
-.with(file: .document("MyAppFiles"))              // Custom folder name
-
-// Library directory (backed up but hidden from users)
-.with(file: .library())                           // Uses default folder name  
-.with(file: .library("AppLibrary"))              // Custom folder name
-
-// Cache directory (may be purged by system when storage is low)
-.with(file: .cache())                             // Uses default folder name
-.with(file: .cache("TempFiles"))                 // Custom folder name
+let storage = try FuseStorageBuilder()
+    .with(file: .document())                                // Default Documents folder
+    .with(file: .document("MyAppFiles"))                   // Custom Documents subfolder
+    .with(file: .library())                                // Default Library folder
+    .with(file: .library("AppLibrary"))                   // Custom Library subfolder
+    .with(file: .cache())                                  // Default Cache folder
+    .with(file: .cache("TempFiles"))                      // Custom Cache subfolder
+    .build()
 ```
 
 #### Custom Directories
 ```swift
-// Application Support directory
-.with(file: .file("MyData", 
-                   searchPathDirectory: .applicationSupportDirectory, 
-                   domainMask: .userDomainMask))
-
-// Downloads directory
-.with(file: .file("Downloads", 
-                   searchPathDirectory: .downloadsDirectory, 
-                   domainMask: .userDomainMask))
-
-// Desktop directory (macOS)
-.with(file: .file("DesktopFiles", 
-                   searchPathDirectory: .desktopDirectory, 
-                   domainMask: .userDomainMask))
-
-// Movies directory
-.with(file: .file("VideoCache", 
-                   searchPathDirectory: .moviesDirectory, 
-                   domainMask: .userDomainMask))
-
-// Pictures directory
-.with(file: .file("ImageCache", 
-                   searchPathDirectory: .picturesDirectory, 
-                   domainMask: .userDomainMask))
-
-// Shared public directory
-.with(file: .file("PublicData", 
-                   searchPathDirectory: .sharedPublicDirectory, 
-                   domainMask: .localDomainMask))
+let storage = try FuseStorageBuilder()
+    .with(file: .file("MyData", searchPathDirectory: .applicationSupportDirectory, domainMask: .userDomainMask))  // Application Support
+    .with(file: .file("Downloads", searchPathDirectory: .downloadsDirectory, domainMask: .userDomainMask))        // Downloads
+    .with(file: .file("DesktopFiles", searchPathDirectory: .desktopDirectory, domainMask: .userDomainMask))       // Desktop (macOS)
+    .with(file: .file("VideoCache", searchPathDirectory: .moviesDirectory, domainMask: .userDomainMask))          // Movies
+    .with(file: .file("ImageCache", searchPathDirectory: .picturesDirectory, domainMask: .userDomainMask))        // Pictures
+    .build()
 ```
 
 #### Custom File Manager
 ```swift
-// Custom file manager implementation
-.with(file: .custom("myfiles", file: MyCustomFileManager()))
+// Note: Implement your custom file manager conforming to FuseFileManageable
+class MyCustomFileManager: FuseFileManageable {
+    // Implementation details...
+}
+
+let storage = try FuseStorageBuilder()
+    .with(file: .custom("myfiles", file: MyCustomFileManager()))
+    .build()
 ```
 
 ### Sync Options
 
-#### No Synchronization
 ```swift
-// No synchronization - local storage only
-.with(sync: .noSync())
-```
+let storage = try FuseStorageBuilder()
+    .with(sync: .noSync())                                                     // No synchronization
+    .build()
 
-#### Firebase Synchronization
-```swift
-// Firebase synchronization (framework available, implementation in progress)
 #if canImport(FirebaseFirestore)
-.with(sync: .firebase())
+let firebaseStorage = try FuseStorageBuilder()
+    .with(sync: .firebase())                                                   // Firebase sync (in progress)
+    .build()
 #endif
-```
 
-#### Custom Synchronization
-```swift
 // Custom sync implementation
-.with(sync: .custom("mysync", sync: MyCustomSyncManager()))
+class MyCustomSyncManager: FuseSyncManageable {
+    // Implementation details...
+}
 
-// Multiple sync implementations
-.with(sync: .custom("mainSync", sync: MainSyncManager()))
-.with(sync: .custom("backupSync", sync: BackupSyncManager()))
+let customSyncStorage = try FuseStorageBuilder()
+    .with(sync: .custom("mysync", sync: MyCustomSyncManager()))
+    .build()
 ```
 
-### Multiple Manager Configuration Examples
+### Complete Configuration Examples
 
 #### Multi-Database Setup
 ```swift
-let storage = try FuseStorageBuilder()
-    .with(database: .sqlite("main.db"))                    // Main application data
-    .with(database: .sqlite("cache.db"))                   // Temporary cache
-    .with(database: .sqlite("secure.db", encryptions: EncryptionOptions.high(passphrase: "secret")))  // Encrypted sensitive data
-    .build()
-
-// Access specific databases
-let mainDb = storage.db(.sqlite("main.db"))!
-let cacheDb = storage.db(.sqlite("cache.db"))!
-let secureDb = storage.db(.sqlite("secure.db"))!
+func setupMultiDatabase() throws -> FuseStorage {
+    let storage = try FuseStorageBuilder()
+        .with(database: .sqlite("main.db"))                                                                          // Main data
+        .with(database: .sqlite("cache.db"))                                                                        // Cache data
+        .with(database: .sqlite("secure.db", encryptions: EncryptionOptions.high(passphrase: "secret")))          // Encrypted data
+        .build()
+    
+    // Access specific databases
+    let mainDb = storage.db(.sqlite("main.db"))!
+    let cacheDb = storage.db(.sqlite("cache.db"))!
+    let secureDb = storage.db(.sqlite("secure.db", encryptions: EncryptionOptions.high(passphrase: "secret")))!
+    
+    return storage
+}
 ```
 
 #### Multi-Preferences Setup
 ```swift
-let storage = try FuseStorageBuilder()
-    .with(preferences: .userDefaults("com.myapp.general"))    // General app settings
-    .with(preferences: .userDefaults("com.myapp.ui"))         // UI preferences
-    .with(preferences: .keychain("com.myapp.auth"))           // Authentication tokens
-    .with(preferences: .keychain("com.myapp.secrets"))        // Sensitive data
-    .build()
-
-// Access specific preference stores
-let generalPrefs = storage.pref(.userDefaults("com.myapp.general"))!
-let uiPrefs = storage.pref(.userDefaults("com.myapp.ui"))!
-let authPrefs = storage.pref(.keychain("com.myapp.auth"))!
-let secretsPrefs = storage.pref(.keychain("com.myapp.secrets"))!
+func setupMultiPreferences() throws -> FuseStorage {
+    let storage = try FuseStorageBuilder()
+        .with(preferences: .userDefaults("com.myapp.general"))        // General settings
+        .with(preferences: .userDefaults("com.myapp.ui"))            // UI preferences
+        .with(preferences: .keychain("com.myapp.auth"))              // Auth tokens
+        .with(preferences: .keychain("com.myapp.secrets"))           // Sensitive data
+        .build()
+    
+    // Access specific preference stores
+    let generalPrefs = storage.pref(.userDefaults("com.myapp.general"))!
+    let uiPrefs = storage.pref(.userDefaults("com.myapp.ui"))!
+    let authPrefs = storage.pref(.keychain("com.myapp.auth"))!
+    let secretsPrefs = storage.pref(.keychain("com.myapp.secrets"))!
+    
+    return storage
+}
 ```
 
 #### Multi-File Storage Setup
 ```swift
-let storage = try FuseStorageBuilder()
-    .with(file: .document("UserFiles"))                       // User documents
-    .with(file: .cache("ImageCache"))                         // Cached images
-    .with(file: .library("AppData"))                          // Application data
-    .with(file: .file("Logs", searchPathDirectory: .applicationSupportDirectory, domainMask: .userDomainMask))  // Log files
-    .build()
-
-// Access specific file managers
-let userFiles = storage.file(.document("UserFiles"))!
-let imageCache = storage.file(.cache("ImageCache"))!
-let appData = storage.file(.library("AppData"))!
-let logFiles = storage.file(.file("Logs", searchPathDirectory: .applicationSupportDirectory, domainMask: .userDomainMask))!
+func setupMultiFileStorage() throws -> FuseStorage {
+    let storage = try FuseStorageBuilder()
+        .with(file: .document("UserFiles"))                                                                                           // User documents
+        .with(file: .cache("ImageCache"))                                                                                            // Cached images
+        .with(file: .library("AppData"))                                                                                             // Application data
+        .with(file: .file("Logs", searchPathDirectory: .applicationSupportDirectory, domainMask: .userDomainMask))                // Log files
+        .build()
+    
+    // Access specific file managers
+    let userFiles = storage.file(.document("UserFiles"))!
+    let imageCache = storage.file(.cache("ImageCache"))!
+    let appData = storage.file(.library("AppData"))!
+    let logFiles = storage.file(.file("Logs", searchPathDirectory: .applicationSupportDirectory, domainMask: .userDomainMask))!
+    
+    return storage
+}
 ```
 
 ### Configuration Best Practices
 
-#### Security Considerations
+#### Security-First Configuration
 ```swift
-// For sensitive data - use encrypted database + keychain
-let secureStorage = try FuseStorageBuilder()
-    .with(database: .sqlite("secure.db", encryptions: EncryptionOptions.high(passphrase: generateSecurePassphrase())))
-    .with(preferences: .keychain("com.myapp.secure", accessibility: .whenUnlockedThisDeviceOnly))
-    .build()
+func setupSecureStorage() throws -> FuseStorage {
+    // Generate or retrieve secure passphrase
+    let passphrase = getSecurePassphrase() // Your secure passphrase generation
+    
+    let storage = try FuseStorageBuilder()
+        .with(database: .sqlite("secure.db", encryptions: EncryptionOptions.high(passphrase: passphrase)))
+        .with(preferences: .keychain("com.myapp.secure", accessibility: .whenUnlockedThisDeviceOnly))
+        .build()
+    
+    return storage
+}
+
+private func getSecurePassphrase() -> String {
+    // Implementation: retrieve from keychain or generate secure passphrase
+    return "your-secure-passphrase"
+}
 ```
 
-#### Performance Optimization
+#### Performance-Optimized Configuration
 ```swift
-// For high-performance scenarios
-let performanceStorage = try FuseStorageBuilder()
-    .with(database: .sqlite("fast.db", encryptions: EncryptionOptions.performance(passphrase: "key")))
-    .with(file: .cache("FastAccess"))  // Use cache for temporary files
-    .with(sync: .noSync())             // Disable sync for better performance
-    .build()
+func setupPerformanceStorage() throws -> FuseStorage {
+    let storage = try FuseStorageBuilder()
+        .with(database: .sqlite("fast.db", encryptions: EncryptionOptions.performance(passphrase: "key")))
+        .with(file: .cache("FastAccess"))                          // Use cache for temporary files
+        .with(sync: .noSync())                                     // Disable sync for better performance
+        .build()
+    
+    return storage
+}
 ```
 
-#### App Extension Sharing
+#### App Extension Sharing Configuration
 ```swift
-// For sharing data between main app and extensions
-let sharedStorage = try FuseStorageBuilder()
-    .with(database: .sqlite("shared.db"))
-    .with(preferences: .userDefaults("group.com.mycompany.myapp"))  // App group for sharing
-    .with(file: .file("Shared", searchPathDirectory: .applicationSupportDirectory, domainMask: .userDomainMask))
-    .build()
+func setupSharedStorage() throws -> FuseStorage {
+    let storage = try FuseStorageBuilder()
+        .with(database: .sqlite("shared.db"))
+        .with(preferences: .userDefaults("group.com.mycompany.myapp"))                                               // App group sharing
+        .with(file: .file("Shared", searchPathDirectory: .applicationSupportDirectory, domainMask: .userDomainMask))
+        .build()
+    
+    return storage
+}
 ```
 
 ## Complete Example
@@ -399,13 +411,13 @@ import FuseStorageKit
 
 // 1. Configure storage
 let storage = try FuseStorageBuilder()
-    .with(database: .sqlite("app.db", encryptions: .standard(passphrase: "secret")))
+    .with(database: .sqlite("app.db", encryptions: EncryptionOptions.standard(passphrase: "secret")))
     .with(preferences: .userDefaults("com.myapp.settings"))
     .with(file: .document("AppFiles"))
     .build()
 
-// 2. Get managers
-let db = storage.db(.sqlite("app.db"))!
+// 2. Get managers (must use identical configuration)
+let db = storage.db(.sqlite("app.db", encryptions: EncryptionOptions.standard(passphrase: "secret")))!
 let prefs = storage.pref(.userDefaults("com.myapp.settings"))!
 let files = storage.file(.document("AppFiles"))!
 
@@ -438,8 +450,8 @@ let theme: String? = prefs.get(forKey: "theme")
 ## Requirements
 
 - iOS 15.0+ / macOS 11.0+
-- Swift 5.6+
-- Xcode 13.0+
+- Swift 6.0+
+- Xcode 15.0+
 
 ## Dependencies
 

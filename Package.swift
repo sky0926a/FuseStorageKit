@@ -27,10 +27,7 @@ let package = Package(
             dependencies: [
                 .product(name: "FirebaseFirestore", package: "firebase-ios-sdk"),
             ],
-            path: "Sources/FuseStorageCore",
-            swiftSettings: [
-                .unsafeFlags(["-enable-library-evolution"])
-            ]
+            path: "Sources/FuseStorageCore"
         ),
         .target(
             name: "FuseObjcBridge",
@@ -44,10 +41,7 @@ let package = Package(
                 "GRDBSQLCipher",
                 "FuseObjcBridge"
             ],
-            path: "Sources/FuseStorageSQLCipher",
-            swiftSettings: [
-                .unsafeFlags(["-enable-library-evolution"])
-            ]
+            path: "Sources/FuseStorageSQLCipher"
         ),
         .testTarget(
             name: "FuseStorageKitTests",
